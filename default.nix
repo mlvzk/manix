@@ -4,6 +4,6 @@
     pname = "manix";
     version = "0.1.0";
     src = ./.;
-    cargoSha256 = "01vlz3xzkirl0qhllpfha6jbm8ld617fm2j7ypkrva0ysmxbsly0";
+    cargoSha256 = "14ym6bigwwl2n5fr5b0ak9309pndrrni2p6hly9s2zj7j09hp8vv";
   };
 }

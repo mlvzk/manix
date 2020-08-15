@@ -128,6 +128,7 @@ impl Database {
     }
 
     pub fn search(&self, search_key: &str) -> Vec<&Definition> {
+        let search_key = search_key.to_lowercase();
         self.hash_to_defs
             .values()
             .flatten()

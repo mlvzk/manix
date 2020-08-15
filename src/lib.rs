@@ -88,11 +88,51 @@ pub fn walk_ast(ast: rnix::AST) -> Vec<Definition> {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Definition {
     pub key: String,
+    pub path: Option<PathBuf>,
     pub comments: Vec<String>,
 }
+
 impl Definition {
-    fn new(key: String, comments: Vec<String>) -> Self {
-        Self { key, comments }
+    pub fn new(key: String, comments: Vec<String>) -> Self {
+        Self {
+            key,
+            comments,
+            path: None,
+        }
+    }
+    pub fn with_path(self, path: PathBuf) -> Self {
+        Definition {
+            path: Some(path),
+            ..self
+        }
+    }
+
+    pub fn pretty_printed(&self) -> String {
+        let heading = self.key.blue();
+        let path = self
+            .path
+            .as_ref()
+            .map(|path| {
+                path.strip_prefix(get_nixpkgs_root())
+                    .unwrap()
+                    .display()
+                    .to_string()
+            })
+            .unwrap_or_default()
+            .white();
+
+        let comment = self
+            .comments
+            .iter()
+            .map(|c: &String| {
+                c.trim_start_matches("#")
+                    .trim_start_matches("/*")
+                    .trim_end_matches("*/")
+            })
+            .collect::<Vec<&str>>()
+            .join("\n");
+
+        format!("# {} ({})\n{}\n\n", heading, path, comment)
     }
 }
 
@@ -148,16 +188,19 @@ impl Database {
                 let mut hasher = crc32fast::Hasher::new();
                 hasher.update(content.as_bytes());
                 let hash = hasher.finalize();
-                (hash, content)
+                (hash, f.path().to_path_buf(), content)
             })
-            .collect::<Vec<(u32, String)>>();
+            .collect::<Vec<(u32, PathBuf, String)>>();
 
         let new_defs = files
             .par_iter()
-            .filter(|(hash, _)| !self.is_in_cache(hash))
-            .map(|(hash, content)| {
+            .filter(|(hash, _, _)| !self.is_in_cache(hash))
+            .map(|(hash, path, content)| {
                 let ast = rnix::parse(&content);
-                let definitions = walk_ast(ast);
+                let definitions = walk_ast(ast)
+                    .into_iter()
+                    .map(|def| def.with_path(path.clone()))
+                    .collect();
                 (hash, definitions)
             })
             .collect::<Vec<(&u32, Vec<Definition>)>>();

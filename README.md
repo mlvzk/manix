@@ -8,6 +8,10 @@ A fast CLI documentation searcher for Nix.
 manix optionals
 ```
 
+### rnix-lsp
+
+If you want to use it in your editor, check [ElKowar's rnix-lsp fork](https://github.com/elkowar/rnix-lsp), which uses it to provide documentation on hover and autocompletion.
+
 ![manix](/manix.png)
 
 ## Installation

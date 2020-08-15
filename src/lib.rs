@@ -9,7 +9,20 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::{io::prelude::*, path::PathBuf, process::Command};
 
-fn find_comments(node: SyntaxNode) -> Option<Vec<String>> {
+pub struct CustomError(pub String);
+impl fmt::Debug for CustomError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+impl std::fmt::Display for CustomError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+impl std::error::Error for CustomError {}
+
+pub fn find_comments(node: SyntaxNode) -> Option<Vec<String>> {
     let mut node = NodeOrToken::Node(node);
     let mut comments = Vec::<String>::new();
 
@@ -41,7 +54,7 @@ fn find_comments(node: SyntaxNode) -> Option<Vec<String>> {
     Some(comments)
 }
 
-fn visit_attr_entry(entry: KeyValue) -> Option<Definition> {
+pub fn visit_attr_entry(entry: KeyValue) -> Option<Definition> {
     let ident = Ident::cast(entry.key()?.path().nth(0)?)?.node().text();
     let lambda = Lambda::cast(entry.value()?)?;
 
@@ -50,13 +63,13 @@ fn visit_attr_entry(entry: KeyValue) -> Option<Definition> {
     Some(Definition::new(ident.to_string(), comments))
 }
 
-fn visit_attrset(set: &AttrSet) -> Vec<Definition> {
+pub fn visit_attrset(set: &AttrSet) -> Vec<Definition> {
     set.entries()
         .flat_map(|e| visit_attr_entry(e).into_iter())
         .collect()
 }
 
-fn walk_ast(ast: rnix::AST) -> Vec<Definition> {
+pub fn walk_ast(ast: rnix::AST) -> Vec<Definition> {
     let mut res = Vec::<Definition>::new();
     for ev in ast.node().preorder_with_tokens() {
         match ev {
@@ -73,9 +86,9 @@ fn walk_ast(ast: rnix::AST) -> Vec<Definition> {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct Definition {
-    key: String,
-    comments: Vec<String>,
+pub struct Definition {
+    pub key: String,
+    pub comments: Vec<String>,
 }
 impl Definition {
     fn new(key: String, comments: Vec<String>) -> Self {
@@ -84,15 +97,26 @@ impl Definition {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct Database {
-    hash_to_defs: HashMap<u32, Vec<Definition>>,
+pub struct Database {
+    pub hash_to_defs: HashMap<u32, Vec<Definition>>,
 }
 
 impl Database {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             hash_to_defs: HashMap::new(),
         }
+    }
+
+    pub fn load(file: &PathBuf) -> Result<Self, CustomError> {
+        Ok(if file.exists() {
+            let cache_bin = std::fs::read(&file)
+                .map_err(|_| CustomError("Failed to read the cache file".into()))?;
+            bincode::deserialize(&cache_bin)
+                .map_err(|_| CustomError("Failed to deserialize cache".into()))?
+        } else {
+            Database::new()
+        })
     }
 
     fn is_in_cache(&self, hash: &u32) -> bool {
@@ -103,11 +127,30 @@ impl Database {
         self.hash_to_defs.insert(hash, defs)
     }
 
+    pub fn search(&self, search_key: &str) -> Vec<&Definition> {
+        self.hash_to_defs
+            .values()
+            .flatten()
+            .filter(|d| d.comments.len() > 0 && d.key.to_lowercase().starts_with(&search_key))
+            .collect()
+    }
+
     /// if anything was updated, bool will be true
-    fn update_cache(
+    pub fn update_cache(
         &mut self,
-        files: Vec<(u32, String)>,
+        cache_path: &PathBuf,
     ) -> Result<bool, Box<dyn std::error::Error>> {
+        let files = find_nix_files(get_nixpkgs_root())
+            .par_iter()
+            .map(|f| {
+                let content = std::fs::read_to_string(f.path()).unwrap();
+                let mut hasher = crc32fast::Hasher::new();
+                hasher.update(content.as_bytes());
+                let hash = hasher.finalize();
+                (hash, content)
+            })
+            .collect::<Vec<(u32, String)>>();
+
         let new_defs = files
             .par_iter()
             .filter(|(hash, _)| !self.is_in_cache(hash))
@@ -125,11 +168,16 @@ impl Database {
             self.add_to_cache(*hash, defs);
         }
 
+        let out = bincode::serialize(self)
+            .map_err(|_| CustomError("Failed to serialize cache".into()))?;
+        std::fs::write(&cache_path, out)
+            .map_err(|_| CustomError("Failed to write cache to file".into()))?;
+
         Ok(true)
     }
 }
 
-fn find_nix_files(path: PathBuf) -> Vec<walkdir::DirEntry> {
+pub fn find_nix_files(path: PathBuf) -> Vec<walkdir::DirEntry> {
     walkdir::WalkDir::new(&path)
         .into_iter()
         .filter_map(Result::ok)
@@ -138,7 +186,7 @@ fn find_nix_files(path: PathBuf) -> Vec<walkdir::DirEntry> {
         .collect::<Vec<walkdir::DirEntry>>()
 }
 
-fn get_nixpkgs_root() -> PathBuf {
+pub fn get_nixpkgs_root() -> PathBuf {
     let channel_path = Command::new("nix-instantiate")
         .arg("--eval")
         .arg("--strict")
@@ -152,87 +200,4 @@ fn get_nixpkgs_root() -> PathBuf {
     } else {
         PathBuf::from(".")
     }
-}
-
-struct CustomError(String);
-impl fmt::Debug for CustomError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.0)
-    }
-}
-impl std::fmt::Display for CustomError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.0)
-    }
-}
-impl std::error::Error for CustomError {}
-
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let cache_path = xdg::BaseDirectories::with_prefix("manix")
-        .map(|bs| bs.place_cache_file("database.bin"))
-        .map_err(|_| CustomError("Couldn't find a cache directory".into()))??;
-
-    let mut database = if cache_path.exists() {
-        let cache_bin = std::fs::read(&cache_path)
-            .map_err(|_| CustomError("Failed to read the cache file".into()))?;
-        bincode::deserialize(&cache_bin)
-            .map_err(|_| CustomError("Failed to deserialize cache".into()))?
-    } else {
-        Database::new()
-    };
-
-    let nixpkgs_root = get_nixpkgs_root();
-
-    let contents = find_nix_files(nixpkgs_root)
-        .par_iter()
-        .map(|f| {
-            let content = std::fs::read_to_string(f.path()).unwrap();
-            let mut hasher = crc32fast::Hasher::new();
-            hasher.update(content.as_bytes());
-            let hash = hasher.finalize();
-            (hash, content)
-        })
-        .collect::<Vec<(u32, String)>>();
-
-    let cache_changed = database
-        .update_cache(contents)
-        .map_err(|_| CustomError("Failed to update cache".into()))?;
-
-    let search_key = std::env::args()
-        .skip(1)
-        .next()
-        .ok_or_else(|| {
-            CustomError("You need to provide a function name (e.g. manix mkderiv)".into())
-        })?
-        .to_lowercase();
-
-    for matches in database
-        .hash_to_defs
-        .values()
-        .flatten()
-        .filter(|d| d.comments.len() > 0 && d.key.to_lowercase().starts_with(&search_key))
-    {
-        let comment = matches
-            .comments
-            .iter()
-            .map(|c: &String| {
-                c.trim_start_matches("#")
-                    .trim_start_matches("/*")
-                    .trim_end_matches("*/")
-                    .to_owned()
-            })
-            .collect::<Vec<String>>()
-            .join("\n");
-
-        println!("# {}\n{}\n\n", matches.key.blue(), comment);
-    }
-
-    if cache_changed {
-        let out = bincode::serialize(&database)
-            .map_err(|_| CustomError("Failed to serialize cache".into()))?;
-        std::fs::write(&cache_path, out)
-            .map_err(|_| CustomError("Failed to write cache to file".into()))?;
-    }
-
-    Ok(())
 }

@@ -15,9 +15,7 @@ manix optionals
 ### Nix
 
 ```sh
-git clone https://github.com/mlvzk/manix
-cd manix
-nix-env -f default.nix -iA manix
+nix-env -i -f https://github.com/mlvzk/manix/archive/master.tar.gz
 ```
 
 ## Kudos

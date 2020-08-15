@@ -21,19 +21,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .to_lowercase();
 
     for matches in database.search(&search_key) {
-        let comment = matches
-            .comments
-            .iter()
-            .map(|c: &String| {
-                c.trim_start_matches("#")
-                    .trim_start_matches("/*")
-                    .trim_end_matches("*/")
-                    .to_owned()
-            })
-            .collect::<Vec<String>>()
-            .join("\n");
-
-        println!("# {}\n{}\n\n", matches.key.blue(), comment);
+        println!("{}", matches.pretty_printed());
     }
 
     Ok(())

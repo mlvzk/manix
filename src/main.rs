@@ -1,4 +1,5 @@
 use colored::*;
+use core::fmt;
 use rayon::prelude::*;
 use rnix::{
     types::{AttrSet, EntryHolder, Ident, KeyValue, Lambda, TypedNode},
@@ -153,12 +154,27 @@ fn get_nixpkgs_root() -> PathBuf {
     }
 }
 
-fn main() {
+struct CustomError(String);
+impl fmt::Debug for CustomError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+impl std::fmt::Display for CustomError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+impl std::error::Error for CustomError {}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cache_path = PathBuf::from("cache.bin");
 
     let mut database = if cache_path.exists() {
-        let cache_bin = std::fs::read(&cache_path).expect("Failed to read the cache file");
-        bincode::deserialize(&cache_bin).expect("Failed to deserialize cache")
+        let cache_bin = std::fs::read(&cache_path)
+            .map_err(|_| CustomError("Failed to read the cache file".into()))?;
+        bincode::deserialize(&cache_bin)
+            .map_err(|_| CustomError("Failed to deserialize cache".into()))?
     } else {
         Database::new()
     };
@@ -175,15 +191,19 @@ fn main() {
             (hash, content)
         })
         .collect::<Vec<(u32, String)>>();
+
     let cache_changed = database
         .update_cache(contents)
-        .expect("Failed to update cache");
+        .map_err(|_| CustomError("Failed to update cache".into()))?;
 
     let search_key = std::env::args()
         .skip(1)
         .next()
-        .unwrap_or("callPackageWith".into())
+        .ok_or_else(|| {
+            CustomError("You need to provide a function name (e.g. manix mkderiv)".into())
+        })?
         .to_lowercase();
+
     for matches in database
         .hash_to_defs
         .values()
@@ -194,8 +214,7 @@ fn main() {
             .comments
             .iter()
             .map(|c: &String| {
-                c.strip_prefix("#")
-                    .unwrap_or(c)
+                c.trim_start_matches("#")
                     .trim_start_matches("/*")
                     .trim_end_matches("*/")
                     .to_owned()
@@ -203,11 +222,15 @@ fn main() {
             .collect::<Vec<String>>()
             .join("\n");
 
-        println!("{}\n{}\n", matches.key.red(), comment);
+        println!("# {}\n{}\n\n", matches.key.blue(), comment);
     }
 
     if cache_changed {
-        let out = bincode::serialize(&database).expect("Failed to serialize cache");
-        std::fs::write(&cache_path, out).expect("Failed to write cache to file");
+        let out = bincode::serialize(&database)
+            .map_err(|_| CustomError("Failed to serialize cache".into()))?;
+        std::fs::write(&cache_path, out)
+            .map_err(|_| CustomError("Failed to write cache to file".into()))?;
     }
+
+    Ok(())
 }

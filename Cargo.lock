@@ -144,6 +144,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2f02823cf78b754822df5f7f268fb59822e7296276d3e069d8e8cb26a14bd10"
 
 [[package]]
+name = "manix"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "colored",
+ "crc32fast",
+ "rayon",
+ "rnix",
+ "serde",
+ "walkdir",
+]
+
+[[package]]
 name = "maybe-uninit"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -156,19 +169,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c198b026e1bbf08a937e94c6c60f9ec4a2267f5b0d2eec9c1b21b061ce2be55f"
 dependencies = [
  "autocfg",
-]
-
-[[package]]
-name = "nixdocs"
-version = "0.1.0"
-dependencies = [
- "bincode",
- "colored",
- "crc32fast",
- "rayon",
- "rnix",
- "serde",
- "walkdir",
 ]
 
 [[package]]

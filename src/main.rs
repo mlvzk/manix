@@ -168,7 +168,9 @@ impl std::fmt::Display for CustomError {
 impl std::error::Error for CustomError {}
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let cache_path = PathBuf::from("cache.bin");
+    let cache_path = xdg::BaseDirectories::with_prefix("manix")
+        .map(|bs| bs.place_cache_file("database.bin"))
+        .map_err(|_| CustomError("Couldn't find a cache directory".into()))??;
 
     let mut database = if cache_path.exists() {
         let cache_bin = std::fs::read(&cache_path)

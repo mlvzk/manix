@@ -66,7 +66,13 @@ impl DocSource for OptionsDatabase {
 pub fn get_hm_json_doc_path() -> Result<PathBuf, Box<dyn std::error::Error>> {
     let base_path_output = Command::new("nix-build")
         .arg("-E")
-        .arg(r#"let pkgs = import <nixpkgs> {}; docs = import (<home-manager> + "/doc") { pkgs = pkgs; lib = import (<home-manager> + "/modules/lib/stdlib-extended.nix") pkgs.lib; }; in docs.options.json"#)
+        .arg(
+            r#"{ pkgs ? import <nixpkgs> {} }:
+            let
+                hmargs = { pkgs = pkgs; lib = import (<home-manager/modules/lib/stdlib-extended.nix>) pkgs.lib; };
+                docs = import (<home-manager/doc>) hmargs;
+            in (if builtins.isFunction docs then docs hmargs else docs).options.json
+        "#)
         .output()
         .map(|o| String::from_utf8(o.stdout))??;
 

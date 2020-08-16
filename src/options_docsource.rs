@@ -57,7 +57,7 @@ impl DocSource for OptionsDatabase {
     fn search(&self, query: &str) -> Vec<DocEntry> {
         self.options
             .iter()
-            .filter(|(key, _)| key.to_lowercase().contains(&query.to_lowercase()))
+            .filter(|(key, _)| key.to_lowercase().starts_with(&query.to_lowercase()))
             .map(|(_, d)| DocEntry::OptionDoc(d.clone()))
             .collect()
     }

@@ -159,6 +159,7 @@ dependencies = [
  "lazy_static",
  "rayon",
  "rnix",
+ "roxmltree",
  "serde",
  "serde_json",
  "walkdir",
@@ -262,6 +263,15 @@ dependencies = [
  "smol_str",
  "text_unit",
  "thin-dst",
+]
+
+[[package]]
+name = "roxmltree"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "17dfc6c39f846bfc7d2ec442ad12055d79608d501380789b965d22f9354451f2"
+dependencies = [
+ "xmlparser",
 ]
 
 [[package]]
@@ -404,3 +414,9 @@ name = "xdg"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d089681aa106a86fade1b0128fb5daf07d5867a509ab036d99988dec80429a57"
+
+[[package]]
+name = "xmlparser"
+version = "0.13.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "52613e655f6f11f63c0fe7d1c3b5ef69e44d96df9b65dab296b441ed0e1125f5"

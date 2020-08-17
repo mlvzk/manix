@@ -70,6 +70,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             aggregate_source.add_source(Box::new(options_db));
         }
     }
+
+    match xml_docsource::XmlFuncDocDatabase::try_load() {
+        Ok(db) => aggregate_source.add_source(Box::new(db)),
+        Err(e) => eprintln!("Failed to load XML documentation: {:#?}", e),
+    }
+
     let search_key = std::env::args()
         .skip(1)
         .next()

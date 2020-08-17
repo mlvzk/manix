@@ -90,7 +90,7 @@ impl XmlFuncDocumentation {
                 n.descendants()
                     .filter_map(|n| n.text())
                     .collect::<Vec<_>>()
-                    .join("\n")
+                    .join("")
                     .to_string()
             });
         Some(XmlFuncDocumentation {
@@ -165,6 +165,7 @@ fn xml_files_in(path: &PathBuf) -> Vec<PathBuf> {
 
 fn generate_docs() -> PathBuf {
     let doc_path = Command::new("nix-build")
+        .arg("--no-out-link")
         .arg("<nixpkgs/doc/doc-support/default.nix>")
         .output()
         .ok()

@@ -2,6 +2,7 @@ use comments_docsource::CommentDocumentation;
 use core::fmt;
 use options_docsource::OptionDocumentation;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use xml_docsource::XmlFuncDocumentation;
 pub mod comments_docsource;
 pub mod options_docsource;
 pub mod xml_docsource;
@@ -23,6 +24,7 @@ impl std::error::Error for CustomError {}
 pub enum DocEntry {
     OptionDoc(OptionDocumentation),
     CommentDoc(CommentDocumentation),
+    XmlFuncDoc(XmlFuncDocumentation),
 }
 
 impl DocEntry {
@@ -30,12 +32,14 @@ impl DocEntry {
         match self {
             DocEntry::OptionDoc(x) => x.name(),
             DocEntry::CommentDoc(x) => x.name(),
+            DocEntry::XmlFuncDoc(x) => x.name(),
         }
     }
     pub fn pretty_printed(&self) -> String {
         match self {
             DocEntry::OptionDoc(x) => x.pretty_printed(),
             DocEntry::CommentDoc(x) => x.pretty_printed(),
+            DocEntry::XmlFuncDoc(x) => x.pretty_printed(),
         }
     }
 }

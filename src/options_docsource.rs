@@ -1,4 +1,4 @@
-use crate::{CustomError, DocEntry, DocSource};
+use crate::{DocEntry, DocSource};
 use colored::*;
 use serde::{Deserialize, Serialize};
 use std::{

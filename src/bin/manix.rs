@@ -2,11 +2,7 @@ use comments_docsource::CommentsDatabase;
 use manix::*;
 use options_docsource::OptionsDatabase;
 
-fn main() {
-    xml_docsource::dostuff();
-}
-
-fn _main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let comment_cache_path = xdg::BaseDirectories::with_prefix("manix")
         .map(|bs| bs.place_cache_file("database.bin"))
         .map_err(|_| CustomError("Couldn't find a cache directory".into()))??;
@@ -74,6 +70,12 @@ fn _main() -> Result<(), Box<dyn std::error::Error>> {
             aggregate_source.add_source(Box::new(options_db));
         }
     }
+
+    match xml_docsource::XmlFuncDocDatabase::try_load() {
+        Ok(db) => aggregate_source.add_source(Box::new(db)),
+        Err(e) => eprintln!("Failed to load XML documentation: {:#?}", e),
+    }
+
     let search_key = std::env::args()
         .skip(1)
         .next()

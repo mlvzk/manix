@@ -4,6 +4,7 @@ use options_docsource::OptionDocumentation;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 pub mod comments_docsource;
 pub mod options_docsource;
+pub mod xml_docsource;
 
 pub struct CustomError(pub String);
 impl fmt::Debug for CustomError {

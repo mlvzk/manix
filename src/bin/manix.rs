@@ -2,7 +2,11 @@ use comments_docsource::CommentsDatabase;
 use manix::*;
 use options_docsource::OptionsDatabase;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() {
+    xml_docsource::dostuff();
+}
+
+fn _main() -> Result<(), Box<dyn std::error::Error>> {
     let comment_cache_path = xdg::BaseDirectories::with_prefix("manix")
         .map(|bs| bs.place_cache_file("database.bin"))
         .map_err(|_| CustomError("Couldn't find a cache directory".into()))??;

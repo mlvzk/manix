@@ -1,4 +1,4 @@
-use crate::{DocEntry, DocSource};
+use crate::{DocEntry, DocSource, DocEntryT};
 use colored::*;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -23,11 +23,11 @@ pub struct OptionDocumentation {
     option_type: String,
 }
 
-impl OptionDocumentation {
-    pub fn name(&self) -> String {
+impl DocEntryT for OptionDocumentation {
+    fn name(&self) -> String {
         self.location.join(".")
     }
-    pub fn pretty_printed(&self) -> String {
+    fn pretty_printed(&self) -> String {
         format!(
             "# {}\n{}\ntype: {}\n\n",
             self.name().blue(),

@@ -106,8 +106,8 @@ pub fn cleanup_comment(s: &str) -> &str {
         .trim_end_matches("*/")
 }
 
-impl CommentDocumentation {
-    pub fn pretty_printed(&self) -> String {
+impl crate::DocEntryT for CommentDocumentation {
+    fn pretty_printed(&self) -> String {
         let heading = self.key.blue();
         let path = self
             .path
@@ -130,7 +130,7 @@ impl CommentDocumentation {
 
         format!("# {} ({})\n{}\n\n", heading, path, comment)
     }
-    pub fn name(&self) -> String {
+    fn name(&self) -> String {
         self.key.to_owned()
     }
 }

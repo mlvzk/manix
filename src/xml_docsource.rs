@@ -1,7 +1,7 @@
 use colored::*;
 use roxmltree::{self, Document};
 
-use crate::{DocEntry, DocSource, Errors};
+use crate::{DocEntry, DocEntryT, DocSource, Errors};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::PathBuf, process::Command};
 use walkdir::WalkDir;
@@ -16,37 +16,6 @@ pub struct XmlFuncDocumentation {
 }
 
 impl XmlFuncDocumentation {
-    pub fn name(&self) -> String {
-        self.name.to_string()
-    }
-
-    pub fn pretty_printed(&self) -> String {
-        let mut output = String::new();
-        if let Some(function_type) = &self.fn_type {
-            output.push_str(&format!(
-                "# {} ({})\n",
-                self.name.blue(),
-                function_type.cyan()
-            ));
-        } else {
-            output.push_str(&format!("# {}\n", self.name.blue()));
-        }
-        output.push_str(&format!("{}\n", self.description));
-        if !self.args.is_empty() {
-            output.push_str("\nArguments:\n");
-            for (name, description) in &self.args {
-                output.push_str(&format!("  {}: {}\n", name.green(), description));
-            }
-        }
-        if let Some(example) = &self.example {
-            output.push_str("\nExample:\n");
-            for line in example.lines() {
-                output.push_str(&format!("  {}\n", line.white()));
-            }
-        }
-        output
-    }
-
     fn from_function_section_node(node: &roxmltree::Node) -> Option<Self> {
         let name = node.first_element_child()?.first_element_child()?.text()?;
         let desc = node.descendants().find(|x| is_tag(x, "para"))?.text()?;
@@ -100,6 +69,38 @@ impl XmlFuncDocumentation {
             example,
             args,
         })
+    }
+}
+
+impl DocEntryT for XmlFuncDocumentation {
+    fn name(&self) -> String {
+        self.name.to_string()
+    }
+    fn pretty_printed(&self) -> String {
+        let mut output = String::new();
+        if let Some(function_type) = &self.fn_type {
+            output.push_str(&format!(
+                "# {} ({})\n",
+                self.name.blue(),
+                function_type.cyan()
+            ));
+        } else {
+            output.push_str(&format!("# {}\n", self.name.blue()));
+        }
+        output.push_str(&format!("{}\n", self.description));
+        if !self.args.is_empty() {
+            output.push_str("\nArguments:\n");
+            for (name, description) in &self.args {
+                output.push_str(&format!("  {}: {}\n", name.green(), description));
+            }
+        }
+        if let Some(example) = &self.example {
+            output.push_str("\nExample:\n");
+            for line in example.lines() {
+                output.push_str(&format!("  {}\n", line.white()));
+            }
+        }
+        output
     }
 }
 

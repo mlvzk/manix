@@ -1,5 +1,6 @@
 use comments_docsource::CommentDocumentation;
 use core::fmt;
+use enum_dispatch::enum_dispatch;
 use options_docsource::OptionDocumentation;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use std::path::PathBuf;
@@ -28,27 +29,17 @@ pub enum Errors {
     },
 }
 
+#[enum_dispatch(DocEntryT)]
 pub enum DocEntry {
     OptionDoc(OptionDocumentation),
     CommentDoc(CommentDocumentation),
     XmlFuncDoc(XmlFuncDocumentation),
 }
 
-impl DocEntry {
-    pub fn name(&self) -> String {
-        match self {
-            DocEntry::OptionDoc(x) => x.name(),
-            DocEntry::CommentDoc(x) => x.name(),
-            DocEntry::XmlFuncDoc(x) => x.name(),
-        }
-    }
-    pub fn pretty_printed(&self) -> String {
-        match self {
-            DocEntry::OptionDoc(x) => x.pretty_printed(),
-            DocEntry::CommentDoc(x) => x.pretty_printed(),
-            DocEntry::XmlFuncDoc(x) => x.pretty_printed(),
-        }
-    }
+#[enum_dispatch]
+pub trait DocEntryT {
+    fn name(&self) -> String;
+    fn pretty_printed(&self) -> String;
 }
 
 pub trait DocSource {

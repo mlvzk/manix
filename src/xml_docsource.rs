@@ -109,7 +109,7 @@ pub struct XmlFuncDocDatabase {
 }
 
 impl XmlFuncDocDatabase {
-    pub fn try_load() -> Result<XmlFuncDocDatabase, Box<dyn std::error::Error>> {
+    pub fn try_load() -> Result<XmlFuncDocDatabase, Box<dyn std::error::Error + Send + Sync>> {
         let doc_path = &generate_docs();
         let mut result = Vec::new();
         for file in xml_files_in(doc_path) {

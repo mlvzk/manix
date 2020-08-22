@@ -2,24 +2,24 @@ use comments_docsource::CommentDocumentation;
 use core::fmt;
 use options_docsource::OptionDocumentation;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use thiserror::Error;
 use xml_docsource::XmlFuncDocumentation;
+
 pub mod comments_docsource;
 pub mod options_docsource;
 pub mod xml_docsource;
 
-pub struct CustomError(pub String);
-impl fmt::Debug for CustomError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.0)
-    }
+#[derive(Error, Debug)]
+pub enum Errors {
+    #[error("Failed to read the cache file")]
+    CacheFileRead,
+    #[error("Failed to deserialize cache")]
+    CacheDeserialize,
+    #[error("Failed to serialize cache")]
+    CacheSerialize,
+    #[error("Failed to write cache to file")]
+    CacheFileWrite,
 }
-impl std::fmt::Display for CustomError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.0)
-    }
-}
-
-impl std::error::Error for CustomError {}
 
 pub enum DocEntry {
     OptionDoc(OptionDocumentation),

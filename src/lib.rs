@@ -2,6 +2,7 @@ use comments_docsource::CommentDocumentation;
 use core::fmt;
 use options_docsource::OptionDocumentation;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use std::path::PathBuf;
 use thiserror::Error;
 use xml_docsource::XmlFuncDocumentation;
 
@@ -11,14 +12,20 @@ pub mod xml_docsource;
 
 #[derive(Error, Debug)]
 pub enum Errors {
-    #[error("Failed to read the cache file")]
-    CacheFileRead,
-    #[error("Failed to deserialize cache")]
-    CacheDeserialize,
-    #[error("Failed to serialize cache")]
-    CacheSerialize,
-    #[error("Failed to write cache to file")]
-    CacheFileWrite,
+    #[error("IO Error for file {}: {}", .filename, .err)]
+    FileIo {
+        filename: String,
+        err: std::io::Error,
+    },
+    #[error("Failed to perform IO on a cache file")]
+    CacheFileIo(#[from] std::io::Error),
+    #[error("Failed to serialize/deserialize cache")]
+    Bincode(#[from] bincode::Error),
+    #[error("XML parsing error for file {}: {}", .filename, .err)]
+    XmlParse {
+        filename: String,
+        err: roxmltree::Error,
+    },
 }
 
 pub enum DocEntry {

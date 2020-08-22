@@ -1,7 +1,7 @@
 use colored::*;
 use roxmltree::{self, Document};
 
-use crate::{DocEntry, DocSource};
+use crate::{DocEntry, DocSource, Errors};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::PathBuf, process::Command};
 use walkdir::WalkDir;
@@ -109,12 +109,18 @@ pub struct XmlFuncDocDatabase {
 }
 
 impl XmlFuncDocDatabase {
-    pub fn try_load() -> Result<XmlFuncDocDatabase, Box<dyn std::error::Error + Send + Sync>> {
+    pub fn try_load() -> Result<XmlFuncDocDatabase, Errors> {
         let doc_path = &generate_docs();
         let mut result = Vec::new();
         for file in xml_files_in(doc_path) {
-            let content = std::fs::read_to_string(&file).unwrap();
-            let document = Document::parse(&content).unwrap();
+            let content = std::fs::read_to_string(&file).map_err(|e| Errors::FileIo {
+                err: e,
+                filename: file.to_str().unwrap().to_string(),
+            })?;
+            let document = Document::parse(&content).map_err(|e| Errors::XmlParse {
+                err: e,
+                filename: file.to_str().unwrap().to_string(),
+            })?;
 
             let mut function_entries = document
                 .descendants()

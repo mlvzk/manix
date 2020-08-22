@@ -63,7 +63,7 @@ impl DocSource for OptionsDatabase {
     }
 }
 
-pub fn get_hm_json_doc_path() -> Result<PathBuf, Box<dyn std::error::Error>> {
+pub fn get_hm_json_doc_path() -> Result<PathBuf, std::io::Error> {
     let base_path_output = Command::new("nix-build")
         .arg("-E")
         .arg(
@@ -74,13 +74,13 @@ pub fn get_hm_json_doc_path() -> Result<PathBuf, Box<dyn std::error::Error>> {
             in (if builtins.isFunction docs then docs hmargs else docs).options.json
         "#)
         .output()
-        .map(|o| String::from_utf8(o.stdout))??;
+        .map(|o| String::from_utf8(o.stdout).unwrap())?;
 
     Ok(PathBuf::from(base_path_output.trim_end_matches("\n"))
         .join("share/doc/home-manager/options.json"))
 }
 
-pub fn get_nixos_json_doc_path() -> Result<PathBuf, Box<dyn std::error::Error>> {
+pub fn get_nixos_json_doc_path() -> Result<PathBuf, std::io::Error> {
     let base_path_output = Command::new("nix-build")
         .env("NIXPKGS_ALLOW_UNFREE", "1")
         .env("NIXPKGS_ALLOW_BROKEN", "1")
@@ -88,7 +88,7 @@ pub fn get_nixos_json_doc_path() -> Result<PathBuf, Box<dyn std::error::Error>> 
         .arg("-E")
         .arg(r#"with import <nixpkgs> {}; let eval = import (pkgs.path + "/nixos/lib/eval-config.nix") { modules = []; }; opts = (nixosOptionsDoc { options = eval.options; }).optionsJSON; in runCommandLocal "options.json" { inherit opts; } "cp $opts/share/doc/nixos/options.json $out""#)
         .output()
-        .map(|o| String::from_utf8(o.stdout))??;
+        .map(|o| String::from_utf8(o.stdout).unwrap())?;
 
     Ok(PathBuf::from(base_path_output.trim_end_matches("\n")))
 }

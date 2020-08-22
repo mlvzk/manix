@@ -1,6 +1,5 @@
-use crate::{CustomError, DocEntry, DocSource};
+use crate::{DocEntry, DocSource, Errors};
 use colored::*;
-
 use lazy_static::lazy_static;
 use rayon::prelude::*;
 use rnix::{
@@ -168,12 +167,10 @@ impl CommentsDatabase {
         }
     }
 
-    pub fn load(file: &PathBuf) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn load(file: &PathBuf) -> Result<Self, Errors> {
         Ok(if file.exists() {
-            let cache_bin = std::fs::read(&file)
-                .map_err(|_| CustomError("Failed to read the cache file".into()))?;
-            bincode::deserialize(&cache_bin)
-                .map_err(|_| CustomError("Failed to deserialize cache".into()))?
+            let cache_bin = std::fs::read(&file)?;
+            bincode::deserialize(&cache_bin)?
         } else {
             CommentsDatabase::new()
         })
@@ -192,10 +189,7 @@ impl CommentsDatabase {
     }
 
     /// if anything was updated, bool will be true
-    pub fn update_cache(
-        &mut self,
-        cache_path: &PathBuf,
-    ) -> Result<bool, Box<dyn std::error::Error>> {
+    pub fn update_cache(&mut self, cache_path: &PathBuf) -> Result<bool, Errors> {
         let files = find_nix_files(get_nixpkgs_root())
             .par_iter()
             .map(|f| {
@@ -227,10 +221,8 @@ impl CommentsDatabase {
             self.add_to_cache(*hash, defs);
         }
 
-        let out = bincode::serialize(self)
-            .map_err(|_| CustomError("Failed to serialize cache".into()))?;
-        std::fs::write(&cache_path, out)
-            .map_err(|_| CustomError("Failed to write cache to file".into()))?;
+        let out = bincode::serialize(self)?;
+        std::fs::write(&cache_path, out)?;
 
         Ok(true)
     }

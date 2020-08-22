@@ -2,24 +2,31 @@ use comments_docsource::CommentDocumentation;
 use core::fmt;
 use options_docsource::OptionDocumentation;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use std::path::PathBuf;
+use thiserror::Error;
 use xml_docsource::XmlFuncDocumentation;
+
 pub mod comments_docsource;
 pub mod options_docsource;
 pub mod xml_docsource;
 
-pub struct CustomError(pub String);
-impl fmt::Debug for CustomError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.0)
-    }
+#[derive(Error, Debug)]
+pub enum Errors {
+    #[error("IO Error for file {}: {}", .filename, .err)]
+    FileIo {
+        filename: String,
+        err: std::io::Error,
+    },
+    #[error("Failed to perform IO on a cache file")]
+    CacheFileIo(#[from] std::io::Error),
+    #[error("Failed to serialize/deserialize cache")]
+    Bincode(#[from] bincode::Error),
+    #[error("XML parsing error for file {}: {}", .filename, .err)]
+    XmlParse {
+        filename: String,
+        err: roxmltree::Error,
+    },
 }
-impl std::fmt::Display for CustomError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.0)
-    }
-}
-
-impl std::error::Error for CustomError {}
 
 pub enum DocEntry {
     OptionDoc(OptionDocumentation),

@@ -157,7 +157,7 @@ checksum = "a2f02823cf78b754822df5f7f268fb59822e7296276d3e069d8e8cb26a14bd10"
 
 [[package]]
 name = "manix"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "anyhow",
  "bincode",

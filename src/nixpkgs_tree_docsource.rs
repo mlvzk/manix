@@ -52,14 +52,14 @@ impl DocSource for NixpkgsTreeDatabase {
     fn search(&self, query: &str) -> Vec<DocEntry> {
         self.keys
             .iter()
-            .filter(|k| k.starts_with(query))
+            .filter(|k| k.to_lowercase().starts_with(&query.to_lowercase()))
             .map(|k| DocEntry::NixpkgsTreeDoc(k.clone()))
             .collect()
     }
     fn search_liberal(&self, query: &str) -> Vec<DocEntry> {
         self.keys
             .iter()
-            .filter(|k| k.contains(query))
+            .filter(|k| k.to_lowercase().contains(&query.to_lowercase()))
             .map(|k| DocEntry::NixpkgsTreeDoc(k.clone()))
             .collect()
     }

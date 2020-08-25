@@ -16,13 +16,14 @@ impl NixpkgsTreeDatabase {
         Ok(bincode::deserialize(&std::fs::read(path)?)?)
     }
 
+    // returns true if cache changed
     pub fn update_cache(&mut self, cache_path: &PathBuf) -> Result<bool, Errors> {
-        let last = self.keys.clone();
-        self.keys = gen_keys()?;
+        let new_keys = gen_keys()?;
+        let last = std::mem::replace(&mut self.keys, new_keys);
 
         std::fs::write(&cache_path, bincode::serialize(&self)?)?;
 
-        Ok(last == self.keys)
+        Ok(last != self.keys)
     }
 }
 

@@ -30,7 +30,7 @@ impl OptionDocumentation {
     pub fn pretty_printed(&self) -> String {
         format!(
             "# {}\n{}\ntype: {}\n\n",
-            self.name().blue(),
+            self.name().blue().bold(),
             self.description,
             self.option_type
         )
@@ -58,6 +58,13 @@ impl DocSource for OptionsDatabase {
         self.options
             .iter()
             .filter(|(key, _)| key.to_lowercase().starts_with(&query.to_lowercase()))
+            .map(|(_, d)| DocEntry::OptionDoc(d.clone()))
+            .collect()
+    }
+    fn search_liberal(&self, query: &str) -> Vec<DocEntry> {
+        self.options
+            .iter()
+            .filter(|(key, _)| key.to_lowercase().contains(&query.to_lowercase()))
             .map(|(_, d)| DocEntry::OptionDoc(d.clone()))
             .collect()
     }

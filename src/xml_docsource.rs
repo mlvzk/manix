@@ -25,7 +25,7 @@ impl XmlFuncDocumentation {
         if let Some(function_type) = &self.fn_type {
             output.push_str(&format!(
                 "# {} ({})\n",
-                self.name.blue(),
+                self.name.blue().bold(),
                 function_type.cyan()
             ));
         } else {
@@ -150,6 +150,13 @@ impl DocSource for XmlFuncDocDatabase {
         self.functions
             .iter()
             .filter(|(key, _)| key.to_lowercase().starts_with(&query.to_lowercase()))
+            .map(|(_, value)| DocEntry::XmlFuncDoc(value.clone()))
+            .collect()
+    }
+    fn search_liberal(&self, query: &str) -> Vec<DocEntry> {
+        self.functions
+            .iter()
+            .filter(|(key, _)| key.to_lowercase().contains(&query.to_lowercase()))
             .map(|(_, value)| DocEntry::XmlFuncDoc(value.clone()))
             .collect()
     }

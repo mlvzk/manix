@@ -108,7 +108,7 @@ pub fn cleanup_comment(s: &str) -> &str {
 
 impl CommentDocumentation {
     pub fn pretty_printed(&self) -> String {
-        let heading = self.key.blue();
+        let heading = self.key.blue().bold();
         let path = self
             .path
             .as_ref()
@@ -154,6 +154,16 @@ impl DocSource for CommentsDatabase {
             .values()
             .flatten()
             .filter(|d| d.comments.len() > 0 && d.key.to_lowercase().starts_with(&search_key))
+            .cloned()
+            .map(DocEntry::CommentDoc)
+            .collect()
+    }
+    fn search_liberal(&self, query: &str) -> Vec<DocEntry> {
+        let search_key = query.to_lowercase();
+        self.hash_to_defs
+            .values()
+            .flatten()
+            .filter(|d| d.comments.len() > 0 && d.key.to_lowercase().contains(&search_key))
             .cloned()
             .map(DocEntry::CommentDoc)
             .collect()

@@ -20,8 +20,10 @@ pub enum Errors {
     },
     #[error("Failed to perform IO on a cache file")]
     CacheFileIo(#[from] std::io::Error),
-    #[error("Failed to serialize/deserialize cache")]
+    #[error("Failed to serialize/deserialize cache(bincode)")]
     Bincode(#[from] bincode::Error),
+    #[error("Failed to serialize/deserialize cache(serde_json)")]
+    SerdeJson(#[from] serde_json::Error),
     #[error("XML parsing error for file {}: {}", .filename, .err)]
     XmlParse {
         filename: String,

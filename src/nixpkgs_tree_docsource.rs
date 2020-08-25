@@ -18,7 +18,7 @@ impl NixpkgsTreeDatabase {
 
     pub fn update_cache(&mut self, cache_path: &PathBuf) -> Result<bool, Errors> {
         let last = self.keys.clone();
-        self.keys = gen_keys();
+        self.keys = gen_keys()?;
 
         std::fs::write(&cache_path, bincode::serialize(&self)?)?;
 
@@ -65,7 +65,7 @@ impl DocSource for NixpkgsTreeDatabase {
     }
 }
 
-fn gen_keys() -> Vec<String> {
+fn gen_keys() -> Result<Vec<String>, Errors> {
     const CODE: &str = r#"
 let
   pkgs = import <nixpkgs> { };
@@ -89,10 +89,9 @@ in
         .arg("--eval")
         .arg("-E")
         .arg(CODE)
-        .output()
-        .expect("nix-instantiate failed");
+        .output()?;
 
-    let keys = serde_json::from_slice::<Keys>(&command.stdout).expect("failed to deserialize Keys");
+    let keys = serde_json::from_slice::<Keys>(&command.stdout)?;
 
-    Into::<Vec<String>>::into(keys)
+    Ok(Into::<Vec<String>>::into(keys))
 }

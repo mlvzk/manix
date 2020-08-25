@@ -2,10 +2,20 @@
 
 A fast CLI documentation searcher for Nix.
 
+## Supported sources:
+
+- Nixpkgs Comments
+- Nixpkgs Tree ("Here's what I found in nixpkgs:...")
+- NixOS Options
+- Home-Manager Options
+
 ## Usage
 
 ```sh
-manix optionals
+manix --help
+manix mergeattr
+manix --strict mergeattr
+manix --update-cache mergeattr
 ```
 
 ### rnix-lsp

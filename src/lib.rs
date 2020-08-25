@@ -58,6 +58,7 @@ impl DocEntry {
 pub trait DocSource {
     fn all_keys(&self) -> Vec<&str>;
     fn search(&self, query: &str) -> Vec<DocEntry>;
+    fn search_liberal(&self, query: &str) -> Vec<DocEntry>;
 }
 
 #[derive(Default)]
@@ -82,6 +83,12 @@ impl DocSource for AggregateDocSource {
         self.sources
             .par_iter()
             .flat_map(|source| source.search(query))
+            .collect()
+    }
+    fn search_liberal(&self, query: &str) -> Vec<DocEntry> {
+        self.sources
+            .par_iter()
+            .flat_map(|source| source.search_liberal(query))
             .collect()
     }
 }

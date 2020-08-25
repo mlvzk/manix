@@ -10,6 +10,9 @@ struct Opt {
     /// Force update cache
     #[structopt(short, long)]
     update_cache: bool,
+    /// Matches entries stricly
+    #[structopt(short, long)]
+    strict: bool,
     #[structopt(name = "QUERY")]
     query: String,
 }
@@ -123,7 +126,11 @@ fn main() -> Result<()> {
         Err(e) => eprintln!("{}", e),
     }
 
-    let entries = aggregate_source.search(&opt.query);
+    let entries = if opt.strict {
+        aggregate_source.search(&opt.query)
+    } else {
+        aggregate_source.search_liberal(&opt.query)
+    };
     let (entries, key_only_entries): (Vec<DocEntry>, Vec<DocEntry>) =
         entries.into_iter().partition(|e| {
             if let DocEntry::NixpkgsTreeDoc(_) = e {
@@ -135,17 +142,19 @@ fn main() -> Result<()> {
 
     {
         use colored::*;
+
         if !key_only_entries.is_empty() {
-            print!("{} ", "Here's what I found in nixpkgs:".bold());
+            print!("{}", "Here's what I found in nixpkgs:".bold());
             for entry in key_only_entries {
-                print!("{} ", entry.name().white());
+                print!(" {}", entry.name().white());
             }
             println!("\n");
         }
-    }
 
-    for entry in entries {
-        println!("{}", entry.pretty_printed());
+        for entry in entries {
+            const LINE: &str = "────────────────────";
+            println!("{}\n{}", LINE.green(), entry.pretty_printed());
+        }
     }
 
     Ok(())

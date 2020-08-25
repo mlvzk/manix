@@ -56,6 +56,13 @@ impl DocSource for NixtreeDatabase {
             .map(|k| DocEntry::NixpkgsTreeDoc(k.clone()))
             .collect()
     }
+    fn search_liberal(&self, query: &str) -> Vec<DocEntry> {
+        self.keys
+            .iter()
+            .filter(|k| k.contains(query))
+            .map(|k| DocEntry::NixpkgsTreeDoc(k.clone()))
+            .collect()
+    }
 }
 
 fn gen_keys() -> Vec<String> {

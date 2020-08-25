@@ -35,6 +35,9 @@ fn main() -> Result<()> {
     let options_nixos_cache_path = cache_dir
         .place_cache_file("options_nixos_database.bin")
         .context("Failed to place NixOS options cache file")?;
+    let nixpkgs_doc_cache_path = cache_dir
+        .place_cache_file("nixpkgs_doc_database.bin")
+        .context("Failed to place Nixpkgs Documentation cache file")?;
 
     let mut aggregate_source = AggregateDocSource::default();
 
@@ -91,6 +94,18 @@ fn main() -> Result<()> {
         } else {
             aggregate_source.add_source(Box::new(tree));
         }
+
+        eprintln!("Building Nixpkgs Documentation...");
+        let mut nixpkgs_doc = xml_docsource::XmlFuncDocDatabase::new();
+        if let Err(e) = nixpkgs_doc
+            .update_cache(&nixpkgs_doc_cache_path)
+            .map_err(|e| anyhow::anyhow!(e))
+            .context("Failed to update Nixpkgs documentation cache")
+        {
+            eprintln!("{:?}", e);
+        } else {
+            aggregate_source.add_source(Box::new(nixpkgs_doc));
+        }
     } else {
         match std::fs::read(&options_hm_cache_path)
             .context("Failed to read the cache file for Home Manager")
@@ -120,14 +135,13 @@ fn main() -> Result<()> {
             Ok(tree) => aggregate_source.add_source(Box::new(tree)),
             Err(e) => eprintln!("{:?}", e),
         }
-    }
 
-    match xml_docsource::XmlFuncDocDatabase::try_load()
-        .map_err(|e| anyhow::anyhow!(e))
-        .context("Failed to load XML documentation")
-    {
-        Ok(db) => aggregate_source.add_source(Box::new(db)),
-        Err(e) => eprintln!("{:?}", e),
+        match xml_docsource::XmlFuncDocDatabase::load(&nixpkgs_doc_cache_path)
+            .context("Failed to read the cache file for Nixpkgs Documentation")
+        {
+            Ok(doc) => aggregate_source.add_source(Box::new(doc)),
+            Err(e) => eprintln!("{:?}", e),
+        }
     }
 
     let entries = if opt.strict {

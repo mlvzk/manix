@@ -109,7 +109,13 @@ pub struct XmlFuncDocDatabase {
 }
 
 impl XmlFuncDocDatabase {
-    pub fn try_load() -> Result<XmlFuncDocDatabase, Errors> {
+    pub fn new() -> Self {
+        Self {
+            functions: HashMap::new(),
+        }
+    }
+
+    pub fn update_cache(&mut self, cache_file: &PathBuf) -> Result<bool, Errors> {
         let doc_path = &generate_docs();
         let mut result = Vec::new();
         for file in xml_files_in(doc_path) {
@@ -136,9 +142,23 @@ impl XmlFuncDocDatabase {
                 .collect::<Vec<_>>();
             result.append(&mut function_entries);
         }
-        Ok(Self {
-            functions: result.into_iter().map(|x| (x.name(), x)).collect(),
-        })
+
+        let new = result.into_iter().map(|x| (x.name(), x)).collect();
+        let old = std::mem::replace(&mut self.functions, new);
+
+        self.save(&cache_file)?;
+
+        Ok(!self.functions.keys().eq(old.keys()))
+    }
+
+    pub fn load(filename: &PathBuf) -> Result<Self, Errors> {
+        let content = std::fs::read(filename)?;
+        Ok(bincode::deserialize(&content)?)
+    }
+
+    fn save(&self, filename: &PathBuf) -> Result<(), Errors> {
+        std::fs::write(filename, bincode::serialize(self)?)?;
+        Ok(())
     }
 }
 

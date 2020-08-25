@@ -140,6 +140,7 @@ fn main() -> Result<()> {
             for entry in key_only_entries {
                 print!("{} ", entry.name().white());
             }
+            println!("\n");
         }
     }
 

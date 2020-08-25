@@ -7,7 +7,7 @@ use thiserror::Error;
 use xml_docsource::XmlFuncDocumentation;
 
 pub mod comments_docsource;
-pub mod nixtree_docsource;
+pub mod nixpkgs_tree_docsource;
 pub mod options_docsource;
 pub mod xml_docsource;
 

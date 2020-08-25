@@ -3,16 +3,16 @@ use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::PathBuf, process::Command};
 
 #[derive(Serialize, Deserialize)]
-pub struct NixtreeDatabase {
+pub struct NixpkgsTreeDatabase {
     keys: Vec<String>,
 }
 
-impl NixtreeDatabase {
+impl NixpkgsTreeDatabase {
     pub fn new() -> Self {
         Self { keys: Vec::new() }
     }
 
-    pub fn load(path: &PathBuf) -> Result<NixtreeDatabase, Errors> {
+    pub fn load(path: &PathBuf) -> Result<NixpkgsTreeDatabase, Errors> {
         Ok(bincode::deserialize(&std::fs::read(path)?)?)
     }
 
@@ -45,7 +45,7 @@ impl Into<Vec<String>> for Keys {
     }
 }
 
-impl DocSource for NixtreeDatabase {
+impl DocSource for NixpkgsTreeDatabase {
     fn all_keys(&self) -> Vec<&str> {
         self.keys.iter().map(|k| k.as_str()).collect()
     }

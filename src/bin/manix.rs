@@ -78,7 +78,7 @@ fn main() -> Result<()> {
         }
 
         eprintln!("Building Nixpkgs Tree cache...");
-        let mut tree = nixtree_docsource::NixtreeDatabase::new();
+        let mut tree = nixpkgs_tree_docsource::NixpkgsTreeDatabase::new();
         if let Err(e) = tree
             .update_cache(&nixpkgs_tree_cache_path)
             .context("Failed to update Nixpkgs Tree cache")
@@ -110,10 +110,10 @@ fn main() -> Result<()> {
             Err(e) => eprintln!("{}", e),
         }
 
-        match nixtree_docsource::NixtreeDatabase::load(&nixpkgs_tree_cache_path)
+        match nixpkgs_tree_docsource::NixpkgsTreeDatabase::load(&nixpkgs_tree_cache_path)
             .context("Failed to read the cache file for Nixpkgs Tree")
         {
-            Ok(nixtree) => aggregate_source.add_source(Box::new(nixtree)),
+            Ok(tree) => aggregate_source.add_source(Box::new(tree)),
             Err(e) => eprintln!("{}", e),
         }
     }

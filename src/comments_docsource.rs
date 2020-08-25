@@ -114,7 +114,7 @@ impl CommentDocumentation {
             .as_ref()
             .map(|path| {
                 path.strip_prefix(NIXPKGS_PATH.to_owned())
-                    .unwrap()
+                    .unwrap_or(path)
                     .display()
                     .to_string()
             })

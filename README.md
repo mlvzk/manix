@@ -4,8 +4,9 @@ A fast CLI documentation searcher for Nix.
 
 ## Supported sources:
 
+- Nixpkgs Documentation
 - Nixpkgs Comments
-- Nixpkgs Tree ("Here's what I found in nixpkgs:...")
+- Nixpkgs Tree (pkgs., pkgs.lib.)
 - NixOS Options
 - Home-Manager Options
 

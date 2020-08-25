@@ -2,20 +2,36 @@ use anyhow::{Context, Result};
 use comments_docsource::CommentsDatabase;
 use manix::*;
 use options_docsource::OptionsDatabase;
+use structopt::StructOpt;
+
+#[derive(StructOpt)]
+#[structopt(name = "manix")]
+struct Opt {
+    /// Force update cache
+    #[structopt(short, long)]
+    update_cache: bool,
+    #[structopt(name = "QUERY")]
+    query: String,
+}
 
 fn main() -> Result<()> {
+    let opt: Opt = Opt::from_args();
+
     let cache_dir =
         xdg::BaseDirectories::with_prefix("manix").context("Failed to get a cache directory")?;
 
     let comment_cache_path = cache_dir
         .place_cache_file("database.bin")
         .context("Failed to place cache file")?;
+    let nixpkgs_tree_cache_path = cache_dir
+        .place_cache_file("nixpkgs_tree.bin")
+        .context("Failed to place nixpkgs tree cache file")?;
     let options_hm_cache_path = cache_dir
         .place_cache_file("options_hm_database.bin")
-        .context("Failed to place cache file")?;
+        .context("Failed to place home-manager options cache file")?;
     let options_nixos_cache_path = cache_dir
         .place_cache_file("options_nixos_database.bin")
-        .context("Failed to place cache file")?;
+        .context("Failed to place NixOS options cache file")?;
 
     let mut aggregate_source = AggregateDocSource::default();
 
@@ -30,7 +46,7 @@ fn main() -> Result<()> {
         .context("Failed to update cache")?;
     aggregate_source.add_source(Box::new(comment_db));
 
-    if cache_invalid {
+    if opt.update_cache || cache_invalid {
         eprintln!("Building Home Manager cache...");
         if let Ok(options_db) = options_docsource::get_hm_json_doc_path()
             .ok()
@@ -57,6 +73,17 @@ fn main() -> Result<()> {
             }
             Err(e) => eprintln!("{}", e),
         }
+
+        eprintln!("Building Nixpkgs Tree cache...");
+        let mut tree = nixtree_docsource::NixtreeDatabase::new();
+        if let Err(e) = tree
+            .update_cache(&nixpkgs_tree_cache_path)
+            .context("Failed to update Nixpkgs Tree cache")
+        {
+            eprintln!("{}", e);
+        } else {
+            aggregate_source.add_source(Box::new(tree));
+        }
     } else {
         match std::fs::read(&options_hm_cache_path)
             .context("Failed to read the cache file for Home Manager")
@@ -79,6 +106,13 @@ fn main() -> Result<()> {
             }
             Err(e) => eprintln!("{}", e),
         }
+
+        match nixtree_docsource::NixtreeDatabase::load(&nixpkgs_tree_cache_path)
+            .context("Failed to read the cache file for Nixpkgs Tree")
+        {
+            Ok(nixtree) => aggregate_source.add_source(Box::new(nixtree)),
+            Err(e) => eprintln!("{}", e),
+        }
     }
 
     match xml_docsource::XmlFuncDocDatabase::try_load()
@@ -89,14 +123,29 @@ fn main() -> Result<()> {
         Err(e) => eprintln!("{}", e),
     }
 
-    let search_key = std::env::args()
-        .skip(1)
-        .next()
-        .context("You need to provide a function name (e.g. manix mkderiv)")?
-        .to_lowercase();
+    let entries = aggregate_source.search(&opt.query);
+    let (entries, key_only_entries): (Vec<DocEntry>, Vec<DocEntry>) =
+        entries.into_iter().partition(|e| {
+            if let DocEntry::NixpkgsTreeDoc(_) = e {
+                false
+            } else {
+                true
+            }
+        });
 
-    for entry in aggregate_source.search(&search_key) {
+    {
+        use colored::*;
+        if !key_only_entries.is_empty() {
+            print!("{} ", "Here's what I found in nixpkgs:".bold());
+            for entry in key_only_entries {
+                print!("{} ", entry.name().white());
+            }
+        }
+    }
+
+    for entry in entries {
         println!("{}", entry.pretty_printed());
     }
+
     Ok(())
 }

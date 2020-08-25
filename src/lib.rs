@@ -7,6 +7,7 @@ use thiserror::Error;
 use xml_docsource::XmlFuncDocumentation;
 
 pub mod comments_docsource;
+pub mod nixtree_docsource;
 pub mod options_docsource;
 pub mod xml_docsource;
 
@@ -32,6 +33,7 @@ pub enum DocEntry {
     OptionDoc(OptionDocumentation),
     CommentDoc(CommentDocumentation),
     XmlFuncDoc(XmlFuncDocumentation),
+    NixpkgsTreeDoc(String),
 }
 
 impl DocEntry {
@@ -40,6 +42,7 @@ impl DocEntry {
             DocEntry::OptionDoc(x) => x.name(),
             DocEntry::CommentDoc(x) => x.name(),
             DocEntry::XmlFuncDoc(x) => x.name(),
+            DocEntry::NixpkgsTreeDoc(x) => x.clone(),
         }
     }
     pub fn pretty_printed(&self) -> String {
@@ -47,6 +50,7 @@ impl DocEntry {
             DocEntry::OptionDoc(x) => x.pretty_printed(),
             DocEntry::CommentDoc(x) => x.pretty_printed(),
             DocEntry::XmlFuncDoc(x) => x.pretty_printed(),
+            DocEntry::NixpkgsTreeDoc(x) => x.clone(),
         }
     }
 }

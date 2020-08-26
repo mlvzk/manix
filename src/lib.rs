@@ -117,17 +117,6 @@ impl DocSource for AggregateDocSource {
             .collect()
     }
     fn update(&mut self) -> Result<bool, Errors> {
-        unimplemented!()
-        // for r in self
-        //     .sources
-        //     .par_iter_mut()
-        //     .map(|s: &mut Box<dyn DocSource + Sync>| (*s).update())
-        //     .collect::<Vec<Result<bool, Errors>>>()
-        // {
-        //     if r? {
-        //         return Ok(true);
-        //     }
-        // }
-        // Ok(false)
+        unimplemented!();
     }
 }

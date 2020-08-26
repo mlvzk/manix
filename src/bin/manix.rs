@@ -78,7 +78,7 @@ fn main() -> Result<()> {
         xdg::BaseDirectories::with_prefix("manix").context("Failed to get a cache directory")?;
 
     let comment_cache_path = cache_dir
-        .place_cache_file("database.bin")
+        .place_cache_file("comments.bin")
         .context("Failed to place cache file")?;
     let nixpkgs_tree_cache_path = cache_dir
         .place_cache_file("nixpkgs_tree.bin")

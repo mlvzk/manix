@@ -52,9 +52,9 @@ impl DocSource for NixpkgsTreeDatabase {
     }
     fn update(&mut self) -> Result<bool, Errors> {
         let new_keys = gen_keys()?;
-        let last = std::mem::replace(&mut self.keys, new_keys);
+        let old = std::mem::replace(&mut self.keys, new_keys);
 
-        Ok(last != self.keys)
+        Ok(old != self.keys)
     }
 }
 impl Cache for NixpkgsTreeDatabase {}

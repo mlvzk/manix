@@ -1,7 +1,8 @@
 use anyhow::{Context, Result};
 use comments_docsource::CommentsDatabase;
 use manix::*;
-use options_docsource::OptionsDatabase;
+use options_docsource::{OptionsDatabase, OptionsDatabaseType};
+use std::path::PathBuf;
 use structopt::StructOpt;
 
 #[derive(StructOpt)]
@@ -15,6 +16,59 @@ struct Opt {
     strict: bool,
     #[structopt(name = "QUERY")]
     query: String,
+}
+
+fn build_source_and_add<T>(
+    mut source: T,
+    name: &str,
+    path: &PathBuf,
+    aggregate: &mut AggregateDocSource,
+) where
+    T: 'static + DocSource + Cache + Sync,
+{
+    eprintln!("Building {} cache...", name);
+    if let Err(e) = source
+        .update()
+        .with_context(|| anyhow::anyhow!("Failed to update {}", name))
+    {
+        eprintln!("{:?}", e);
+        return;
+    }
+
+    if let Err(e) = source
+        .save(&path)
+        .with_context(|| format!("Failed to save {} cache", name))
+    {
+        eprintln!("{:?}", e);
+        return;
+    }
+
+    aggregate.add_source(Box::new(source));
+}
+
+fn load_source_and_add<T>(
+    load_result: Result<Result<T, Errors>, std::io::Error>,
+    name: &str,
+    aggregate: &mut AggregateDocSource,
+) where
+    T: 'static + DocSource + Cache + Sync,
+{
+    let load_result = match load_result {
+        Err(e) => {
+            eprintln!("Failed to load {} cache file: {:?}", name, e);
+            return;
+        }
+        Ok(r) => r,
+    };
+
+    match load_result.with_context(|| anyhow::anyhow!("Failed to load {}", name)) {
+        Err(e) => {
+            eprintln!("{:?}", e);
+        }
+        Ok(source) => {
+            aggregate.add_source(Box::new(source));
+        }
+    }
 }
 
 fn main() -> Result<()> {
@@ -41,107 +95,72 @@ fn main() -> Result<()> {
 
     let mut aggregate_source = AggregateDocSource::default();
 
-    let mut comment_db = CommentsDatabase::load(&comment_cache_path)
+    let mut comment_db = CommentsDatabase::load(&std::fs::read(&comment_cache_path)?)
         .map_err(|e| anyhow::anyhow!("Failed to load NixOS comments database: {:?}", e))?;
     if comment_db.hash_to_defs.len() == 0 {
         eprintln!("Building NixOS comments cache...");
     }
     let cache_invalid = comment_db
-        .update_cache(&comment_cache_path)
+        .update()
         .map_err(|e| anyhow::anyhow!(e))
         .context("Failed to update cache")?;
+    comment_db.save(&comment_cache_path)?;
     aggregate_source.add_source(Box::new(comment_db));
 
     if opt.update_cache || cache_invalid {
-        eprintln!("Building Home Manager Options cache...");
-        match options_docsource::get_hm_json_doc_path()
-            .ok()
-            .and_then(|path| OptionsDatabase::try_from_file(path))
-            .ok_or(anyhow::anyhow!("Failed to load Home Manager Options"))
-        {
-            Ok(options_db) => {
-                let out = bincode::serialize(&options_db).context("Failed to serialize cache")?;
-                std::fs::write(&options_hm_cache_path, out)
-                    .context("Failed to write cache to file")?;
-                aggregate_source.add_source(Box::new(options_db));
-            }
-            Err(e) => eprintln!("{:?}", e),
-        }
+        build_source_and_add(
+            OptionsDatabase::new(OptionsDatabaseType::HomeManager),
+            "Home Manager Options",
+            &options_hm_cache_path,
+            &mut aggregate_source,
+        );
 
-        eprintln!("Building NixOS Options cache...");
-        match options_docsource::get_nixos_json_doc_path()
-            .ok()
-            .and_then(|path| OptionsDatabase::try_from_file(path))
-            .context("Failed to load NixOS options")
-        {
-            Ok(options_db) => {
-                let out =
-                    bincode::serialize(&options_db).context("Failed to serialize NixOS cache")?;
-                std::fs::write(&options_nixos_cache_path, out)
-                    .context("Failed to write NixOS cache")?;
-                aggregate_source.add_source(Box::new(options_db));
-            }
-            Err(e) => eprintln!("{:?}", e),
-        }
+        build_source_and_add(
+            OptionsDatabase::new(OptionsDatabaseType::NixOS),
+            "NixOS Options",
+            &options_nixos_cache_path,
+            &mut aggregate_source,
+        );
 
-        eprintln!("Building Nixpkgs Tree cache...");
-        let mut tree = nixpkgs_tree_docsource::NixpkgsTreeDatabase::new();
-        if let Err(e) = tree
-            .update_cache(&nixpkgs_tree_cache_path)
-            .context("Failed to update Nixpkgs Tree cache")
-        {
-            eprintln!("{:?}", e);
-        } else {
-            aggregate_source.add_source(Box::new(tree));
-        }
+        build_source_and_add(
+            nixpkgs_tree_docsource::NixpkgsTreeDatabase::new(),
+            "Nixpkgs Tree",
+            &nixpkgs_tree_cache_path,
+            &mut aggregate_source,
+        );
 
-        eprintln!("Building Nixpkgs Documentation...");
-        let mut nixpkgs_doc = xml_docsource::XmlFuncDocDatabase::new();
-        if let Err(e) = nixpkgs_doc
-            .update_cache(&nixpkgs_doc_cache_path)
-            .map_err(|e| anyhow::anyhow!(e))
-            .context("Failed to update Nixpkgs documentation cache")
-        {
-            eprintln!("{:?}", e);
-        } else {
-            aggregate_source.add_source(Box::new(nixpkgs_doc));
-        }
+        build_source_and_add(
+            xml_docsource::XmlFuncDocDatabase::new(),
+            "Nixpkgs Documentation",
+            &nixpkgs_doc_cache_path,
+            &mut aggregate_source,
+        );
     } else {
-        match std::fs::read(&options_hm_cache_path)
-            .context("Failed to read the cache file for Home Manager")
-        {
-            Ok(cache_bin) => {
-                let options_db: OptionsDatabase = bincode::deserialize(&cache_bin)
-                    .context("Failed to deserialize Home Manager cache")?;
-                aggregate_source.add_source(Box::new(options_db));
-            }
-            Err(e) => eprintln!("{:?}", e),
-        }
+        load_source_and_add(
+            std::fs::read(&options_hm_cache_path).map(|c| OptionsDatabase::load(&c)),
+            "Home Manager Options",
+            &mut aggregate_source,
+        );
 
-        match std::fs::read(&options_nixos_cache_path)
-            .context("Failed to read the cache file for NixOS")
-        {
-            Ok(cache_bin) => {
-                let options_db: OptionsDatabase = bincode::deserialize(&cache_bin)
-                    .context("Failed to deserialize NixOS cache")?;
-                aggregate_source.add_source(Box::new(options_db));
-            }
-            Err(e) => eprintln!("{:?}", e),
-        }
+        load_source_and_add(
+            std::fs::read(&options_nixos_cache_path).map(|c| OptionsDatabase::load(&c)),
+            "NixOS Options",
+            &mut aggregate_source,
+        );
 
-        match nixpkgs_tree_docsource::NixpkgsTreeDatabase::load(&nixpkgs_tree_cache_path)
-            .context("Failed to read the cache file for Nixpkgs Tree")
-        {
-            Ok(tree) => aggregate_source.add_source(Box::new(tree)),
-            Err(e) => eprintln!("{:?}", e),
-        }
+        load_source_and_add(
+            std::fs::read(&nixpkgs_tree_cache_path)
+                .map(|c| nixpkgs_tree_docsource::NixpkgsTreeDatabase::load(&c)),
+            "Nixpkgs Tree",
+            &mut aggregate_source,
+        );
 
-        match xml_docsource::XmlFuncDocDatabase::load(&nixpkgs_doc_cache_path)
-            .context("Failed to read the cache file for Nixpkgs Documentation")
-        {
-            Ok(doc) => aggregate_source.add_source(Box::new(doc)),
-            Err(e) => eprintln!("{:?}", e),
-        }
+        load_source_and_add(
+            std::fs::read(&nixpkgs_doc_cache_path)
+                .map(|c| xml_docsource::XmlFuncDocDatabase::load(&c)),
+            "Nixpkgs Documentation",
+            &mut aggregate_source,
+        );
     }
 
     let entries = if opt.strict {

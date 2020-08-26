@@ -1,6 +1,6 @@
-use crate::{DocEntry, DocSource, Errors};
+use crate::{Cache, DocEntry, DocSource, Errors};
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, path::PathBuf, process::Command};
+use std::{collections::HashMap, process::Command};
 
 #[derive(Serialize, Deserialize)]
 pub struct NixpkgsTreeDatabase {
@@ -10,20 +10,6 @@ pub struct NixpkgsTreeDatabase {
 impl NixpkgsTreeDatabase {
     pub fn new() -> Self {
         Self { keys: Vec::new() }
-    }
-
-    pub fn load(path: &PathBuf) -> Result<NixpkgsTreeDatabase, Errors> {
-        Ok(bincode::deserialize(&std::fs::read(path)?)?)
-    }
-
-    // returns true if cache changed
-    pub fn update_cache(&mut self, cache_path: &PathBuf) -> Result<bool, Errors> {
-        let new_keys = gen_keys()?;
-        let last = std::mem::replace(&mut self.keys, new_keys);
-
-        std::fs::write(&cache_path, bincode::serialize(&self)?)?;
-
-        Ok(last != self.keys)
     }
 }
 
@@ -64,7 +50,14 @@ impl DocSource for NixpkgsTreeDatabase {
             .map(|k| DocEntry::NixpkgsTreeDoc(k.clone()))
             .collect()
     }
+    fn update(&mut self) -> Result<bool, Errors> {
+        let new_keys = gen_keys()?;
+        let last = std::mem::replace(&mut self.keys, new_keys);
+
+        Ok(last != self.keys)
+    }
 }
+impl Cache for NixpkgsTreeDatabase {}
 
 fn gen_keys() -> Result<Vec<String>, Errors> {
     const CODE: &str = r#"

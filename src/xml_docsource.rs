@@ -1,7 +1,7 @@
 use colored::*;
 use roxmltree::{self, Document};
 
-use crate::{DocEntry, DocSource, Errors};
+use crate::{Cache, DocEntry, DocSource, Errors};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::PathBuf, process::Command};
 use walkdir::WalkDir;
@@ -114,8 +114,29 @@ impl XmlFuncDocDatabase {
             functions: HashMap::new(),
         }
     }
+}
 
-    pub fn update_cache(&mut self, cache_file: &PathBuf) -> Result<bool, Errors> {
+impl Cache for XmlFuncDocDatabase {}
+
+impl DocSource for XmlFuncDocDatabase {
+    fn all_keys(&self) -> Vec<&str> {
+        self.functions.keys().map(|x| x.as_str()).collect()
+    }
+    fn search(&self, query: &str) -> Vec<crate::DocEntry> {
+        self.functions
+            .iter()
+            .filter(|(key, _)| key.to_lowercase().starts_with(&query.to_lowercase()))
+            .map(|(_, value)| DocEntry::XmlFuncDoc(value.clone()))
+            .collect()
+    }
+    fn search_liberal(&self, query: &str) -> Vec<DocEntry> {
+        self.functions
+            .iter()
+            .filter(|(key, _)| key.to_lowercase().contains(&query.to_lowercase()))
+            .map(|(_, value)| DocEntry::XmlFuncDoc(value.clone()))
+            .collect()
+    }
+    fn update(&mut self) -> Result<bool, Errors> {
         let doc_path = &generate_docs();
         let mut result = Vec::new();
         for file in xml_files_in(doc_path) {
@@ -146,39 +167,7 @@ impl XmlFuncDocDatabase {
         let new = result.into_iter().map(|x| (x.name(), x)).collect();
         let old = std::mem::replace(&mut self.functions, new);
 
-        self.save(&cache_file)?;
-
         Ok(!self.functions.keys().eq(old.keys()))
-    }
-
-    pub fn load(filename: &PathBuf) -> Result<Self, Errors> {
-        let content = std::fs::read(filename)?;
-        Ok(bincode::deserialize(&content)?)
-    }
-
-    fn save(&self, filename: &PathBuf) -> Result<(), Errors> {
-        std::fs::write(filename, bincode::serialize(self)?)?;
-        Ok(())
-    }
-}
-
-impl DocSource for XmlFuncDocDatabase {
-    fn all_keys(&self) -> Vec<&str> {
-        self.functions.keys().map(|x| x.as_str()).collect()
-    }
-    fn search(&self, query: &str) -> Vec<crate::DocEntry> {
-        self.functions
-            .iter()
-            .filter(|(key, _)| key.to_lowercase().starts_with(&query.to_lowercase()))
-            .map(|(_, value)| DocEntry::XmlFuncDoc(value.clone()))
-            .collect()
-    }
-    fn search_liberal(&self, query: &str) -> Vec<DocEntry> {
-        self.functions
-            .iter()
-            .filter(|(key, _)| key.to_lowercase().contains(&query.to_lowercase()))
-            .map(|(_, value)| DocEntry::XmlFuncDoc(value.clone()))
-            .collect()
     }
 }
 

@@ -1,4 +1,4 @@
-use crate::{DocEntry, DocSource};
+use crate::{Cache, DocEntry, DocSource, Errors};
 use colored::*;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -37,17 +37,31 @@ impl OptionDocumentation {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
+pub enum OptionsDatabaseType {
+    NixOS,
+    HomeManager,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct OptionsDatabase {
+    pub typ: OptionsDatabaseType,
     pub options: HashMap<String, OptionDocumentation>,
 }
 
 impl OptionsDatabase {
-    pub fn try_from_file<P: AsRef<Path>>(path: P) -> Option<Self> {
-        let reader = BufReader::new(File::open(path).ok()?);
-        let options = serde_json::from_reader(reader).ok()?;
-        Some(OptionsDatabase { options })
+    pub fn new(typ: OptionsDatabaseType) -> Self {
+        Self {
+            typ,
+            options: HashMap::new(),
+        }
     }
+}
+
+pub fn try_from_file(path: &PathBuf) -> Result<HashMap<String, OptionDocumentation>, Errors> {
+    let options: HashMap<String, OptionDocumentation> =
+        serde_json::from_slice(&std::fs::read(path)?)?;
+    Ok(options)
 }
 
 impl DocSource for OptionsDatabase {
@@ -68,7 +82,19 @@ impl DocSource for OptionsDatabase {
             .map(|(_, d)| DocEntry::OptionDoc(d.clone()))
             .collect()
     }
+    fn update(&mut self) -> Result<bool, Errors> {
+        let opts = match self.typ {
+            OptionsDatabaseType::NixOS => try_from_file(&get_nixos_json_doc_path()?)?,
+            OptionsDatabaseType::HomeManager => try_from_file(&get_hm_json_doc_path()?)?,
+        };
+
+        let old = std::mem::replace(&mut self.options, opts);
+
+        Ok(old.keys().eq(self.options.keys()))
+    }
 }
+
+impl Cache for OptionsDatabase {}
 
 pub fn get_hm_json_doc_path() -> Result<PathBuf, std::io::Error> {
     let base_path_output = Command::new("nix-build")

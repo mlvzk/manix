@@ -1,4 +1,4 @@
-use crate::{DocEntry, DocSource, Errors};
+use crate::{Cache, DocEntry, DocSource, Errors};
 use colored::*;
 use lazy_static::lazy_static;
 use rayon::prelude::*;
@@ -168,38 +168,7 @@ impl DocSource for CommentsDatabase {
             .map(DocEntry::CommentDoc)
             .collect()
     }
-}
-
-impl CommentsDatabase {
-    pub fn new() -> Self {
-        Self {
-            hash_to_defs: HashMap::new(),
-        }
-    }
-
-    pub fn load(file: &PathBuf) -> Result<Self, Errors> {
-        Ok(if file.exists() {
-            let cache_bin = std::fs::read(&file)?;
-            bincode::deserialize(&cache_bin)?
-        } else {
-            CommentsDatabase::new()
-        })
-    }
-
-    fn is_in_cache(&self, hash: &u32) -> bool {
-        self.hash_to_defs.contains_key(hash)
-    }
-
-    fn add_to_cache(
-        &mut self,
-        hash: u32,
-        defs: Vec<CommentDocumentation>,
-    ) -> Option<Vec<CommentDocumentation>> {
-        self.hash_to_defs.insert(hash, defs)
-    }
-
-    /// if anything was updated, bool will be true
-    pub fn update_cache(&mut self, cache_path: &PathBuf) -> Result<bool, Errors> {
+    fn update(&mut self) -> Result<bool, Errors> {
         let files = find_nix_files(get_nixpkgs_root())
             .par_iter()
             .map(|f| {
@@ -231,10 +200,28 @@ impl CommentsDatabase {
             self.add_to_cache(*hash, defs);
         }
 
-        let out = bincode::serialize(self)?;
-        std::fs::write(&cache_path, out)?;
-
         Ok(true)
+    }
+}
+impl Cache for CommentsDatabase {}
+
+impl CommentsDatabase {
+    pub fn new() -> Self {
+        Self {
+            hash_to_defs: HashMap::new(),
+        }
+    }
+
+    fn is_in_cache(&self, hash: &u32) -> bool {
+        self.hash_to_defs.contains_key(hash)
+    }
+
+    fn add_to_cache(
+        &mut self,
+        hash: u32,
+        defs: Vec<CommentDocumentation>,
+    ) -> Option<Vec<CommentDocumentation>> {
+        self.hash_to_defs.insert(hash, defs)
     }
 }
 

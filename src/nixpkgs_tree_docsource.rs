@@ -2,7 +2,7 @@ use crate::{Cache, DocEntry, DocSource, Errors};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, process::Command};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct NixpkgsTreeDatabase {
     keys: Vec<String>,
 }

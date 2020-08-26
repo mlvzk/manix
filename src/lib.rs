@@ -50,6 +50,7 @@ pub enum Errors {
     },
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub enum DocEntry {
     OptionDoc(OptionDocumentation),
     CommentDoc(CommentDocumentation),

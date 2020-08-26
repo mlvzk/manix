@@ -77,7 +77,7 @@ fn walk_ast(ast: rnix::AST) -> Vec<CommentDocumentation> {
     res
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CommentDocumentation {
     pub key: String,
     pub path: Option<PathBuf>,

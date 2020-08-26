@@ -8,7 +8,7 @@ use std::{
     path::{Path, PathBuf},
     process::Command,
 };
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct OptionDocumentation {
     #[serde(default)]
     description: String,

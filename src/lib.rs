@@ -11,6 +11,25 @@ pub mod nixpkgs_tree_docsource;
 pub mod options_docsource;
 pub mod xml_docsource;
 
+pub trait Cache
+where
+    Self: Sized + DocSource + serde::Serialize,
+{
+    /// Deserializes content to Self
+    fn load<'a>(content: &'a [u8]) -> Result<Self, Errors>
+    where
+        Self: serde::Deserialize<'a>,
+    {
+        Ok(bincode::deserialize(content)?)
+    }
+    /// Saves self to a file, serialized with bincode
+    fn save(&self, filename: &PathBuf) -> Result<(), Errors> {
+        let x = bincode::serialize(self)?;
+        std::fs::write(filename, x)?;
+        Ok(())
+    }
+}
+
 #[derive(Error, Debug)]
 pub enum Errors {
     #[error("IO Error for file {}: {}", .filename, .err)]
@@ -31,6 +50,7 @@ pub enum Errors {
     },
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub enum DocEntry {
     OptionDoc(OptionDocumentation),
     CommentDoc(CommentDocumentation),
@@ -61,6 +81,9 @@ pub trait DocSource {
     fn all_keys(&self) -> Vec<&str>;
     fn search(&self, query: &str) -> Vec<DocEntry>;
     fn search_liberal(&self, query: &str) -> Vec<DocEntry>;
+
+    /// Updates the cache, returns true if anything changed
+    fn update(&mut self) -> Result<bool, Errors>;
 }
 
 #[derive(Default)]
@@ -92,5 +115,8 @@ impl DocSource for AggregateDocSource {
             .par_iter()
             .flat_map(|source| source.search_liberal(query))
             .collect()
+    }
+    fn update(&mut self) -> Result<bool, Errors> {
+        unimplemented!();
     }
 }

@@ -77,6 +77,10 @@ fn main() -> Result<()> {
     let cache_dir =
         xdg::BaseDirectories::with_prefix("manix").context("Failed to get a cache directory")?;
 
+    let last_version_path = cache_dir
+        .place_cache_file("last_version.txt")
+        .context("Failed to place last version file")?;
+
     let comment_cache_path = cache_dir
         .place_cache_file("comments.bin")
         .context("Failed to place cache file")?;
@@ -93,9 +97,16 @@ fn main() -> Result<()> {
         .place_cache_file("nixpkgs_doc_database.bin")
         .context("Failed to place Nixpkgs Documentation cache file")?;
 
+    let version = std::env!("CARGO_PKG_VERSION");
+    let last_version = std::fs::read(&last_version_path)
+        .map(|c| String::from_utf8(c))
+        .unwrap_or(Ok(version.to_string()))?;
+
+    let should_invalidate_cache = version != last_version;
+
     let mut aggregate_source = AggregateDocSource::default();
 
-    let mut comment_db = if comment_cache_path.exists() {
+    let mut comment_db = if !should_invalidate_cache && comment_cache_path.exists() {
         CommentsDatabase::load(&std::fs::read(&comment_cache_path)?)
             .map_err(|e| anyhow::anyhow!("Failed to load NixOS comments database: {:?}", e))?
     } else {
@@ -111,7 +122,7 @@ fn main() -> Result<()> {
     comment_db.save(&comment_cache_path)?;
     aggregate_source.add_source(Box::new(comment_db));
 
-    if opt.update_cache || cache_invalid {
+    if should_invalidate_cache || opt.update_cache || cache_invalid {
         build_source_and_add(
             OptionsDatabase::new(OptionsDatabaseType::HomeManager),
             "Home Manager Options",
@@ -139,6 +150,8 @@ fn main() -> Result<()> {
             &nixpkgs_doc_cache_path,
             &mut aggregate_source,
         );
+
+        std::fs::write(&last_version_path, version)?;
     } else {
         load_source_and_add(
             std::fs::read(&options_hm_cache_path).map(|c| OptionsDatabase::load(&c)),

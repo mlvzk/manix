@@ -1,0 +1,25 @@
+name: Build and release
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  release:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Build project
+        run: cargo build --release --locked
+        id: bump_version
+      - name: Upload binary to release
+        uses: svenstaro/upload-release-action@v1-release
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: target/release/manix
+          asset_name: manix
+          tag: ${{ steps.bump_version.outputs.new_tag }}
+          overwrite: true

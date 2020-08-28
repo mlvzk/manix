@@ -1,4 +1,7 @@
-use crate::{Cache, DocEntry, DocSource, Errors};
+use crate::{
+    contains_insensitive_ascii, starts_with_insensitive_ascii, Cache, DocEntry, DocSource, Errors,
+    Lowercase,
+};
 use colored::*;
 use lazy_static::lazy_static;
 use rayon::prelude::*;
@@ -148,22 +151,22 @@ impl DocSource for CommentsDatabase {
             .map(|def| def.key.as_ref())
             .collect()
     }
-    fn search(&self, query: &str) -> Vec<DocEntry> {
-        let search_key = query.to_lowercase();
+    fn search(&self, query: &Lowercase) -> Vec<DocEntry> {
         self.hash_to_defs
             .values()
             .flatten()
-            .filter(|d| d.comments.len() > 0 && d.key.to_lowercase().starts_with(&search_key))
+            .filter(|d| {
+                d.comments.len() > 0 && starts_with_insensitive_ascii(d.key.as_bytes(), query)
+            })
             .cloned()
             .map(DocEntry::CommentDoc)
             .collect()
     }
-    fn search_liberal(&self, query: &str) -> Vec<DocEntry> {
-        let search_key = query.to_lowercase();
+    fn search_liberal(&self, query: &Lowercase) -> Vec<DocEntry> {
         self.hash_to_defs
             .values()
             .flatten()
-            .filter(|d| d.comments.len() > 0 && d.key.to_lowercase().contains(&search_key))
+            .filter(|d| d.comments.len() > 0 && contains_insensitive_ascii(d.key.as_bytes(), query))
             .cloned()
             .map(DocEntry::CommentDoc)
             .collect()

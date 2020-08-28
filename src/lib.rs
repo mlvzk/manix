@@ -79,8 +79,8 @@ impl DocEntry {
 
 pub trait DocSource {
     fn all_keys(&self) -> Vec<&str>;
-    fn search(&self, query: &str) -> Vec<DocEntry>;
-    fn search_liberal(&self, query: &str) -> Vec<DocEntry>;
+    fn search(&self, query: &Lowercase) -> Vec<DocEntry>;
+    fn search_liberal(&self, query: &Lowercase) -> Vec<DocEntry>;
 
     /// Updates the cache, returns true if anything changed
     fn update(&mut self) -> Result<bool, Errors>;
@@ -104,13 +104,13 @@ impl DocSource for AggregateDocSource {
             .flat_map(|source| source.all_keys())
             .collect()
     }
-    fn search(&self, query: &str) -> Vec<DocEntry> {
+    fn search(&self, query: &Lowercase) -> Vec<DocEntry> {
         self.sources
             .par_iter()
             .flat_map(|source| source.search(query))
             .collect()
     }
-    fn search_liberal(&self, query: &str) -> Vec<DocEntry> {
+    fn search_liberal(&self, query: &Lowercase) -> Vec<DocEntry> {
         self.sources
             .par_iter()
             .flat_map(|source| source.search_liberal(query))
@@ -119,4 +119,66 @@ impl DocSource for AggregateDocSource {
     fn update(&mut self) -> Result<bool, Errors> {
         unimplemented!();
     }
+}
+
+#[repr(transparent)]
+pub struct Lowercase<'a>(pub &'a [u8]);
+
+pub(crate) fn starts_with_insensitive_ascii(s: &[u8], prefix: &Lowercase) -> bool {
+    let prefix = prefix.0;
+
+    if s.len() < prefix.len() {
+        return false;
+    }
+
+    for (i, b) in prefix.into_iter().enumerate() {
+        if unsafe { s.get_unchecked(i) }.to_ascii_lowercase() != *b {
+            return false;
+        }
+    }
+
+    true
+}
+
+pub(crate) fn contains_insensitive_ascii(s: &[u8], inner: &Lowercase) -> bool {
+    let inner = inner.0;
+
+    if s.len() < inner.len() {
+        return false;
+    }
+
+    'outer: for i in 0..(s.len() - inner.len()) {
+        let target = &s[i..i + inner.len()];
+        for (y, b) in target.into_iter().enumerate() {
+            if *unsafe { inner.get_unchecked(y) } != b.to_ascii_lowercase() {
+                continue 'outer;
+            }
+        }
+        return true;
+    }
+
+    false
+}
+
+#[test]
+fn test_starts_with_insensitive_ascii() {
+    assert_eq!(
+        starts_with_insensitive_ascii("This is a string".as_bytes(), "this ".as_bytes()),
+        true,
+    );
+    assert_eq!(
+        starts_with_insensitive_ascii("This is a string".as_bytes(), "x".as_bytes()),
+        false,
+    );
+    assert_eq!(
+        starts_with_insensitive_ascii("thi".as_bytes(), "this ".as_bytes()),
+        false,
+    );
+}
+
+#[test]
+fn test_contains_insensitive_ascii() {
+    assert_eq!(contains_insensitive_ascii("abc".as_bytes(), b"b"), true);
+    assert_eq!(contains_insensitive_ascii("abc".as_bytes(), b"x"), false);
+    assert_eq!(contains_insensitive_ascii("abc".as_bytes(), b"abcd"), false);
 }

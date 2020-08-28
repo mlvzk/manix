@@ -180,10 +180,12 @@ fn main() -> Result<()> {
         );
     }
 
+    let query_lower = opt.query.to_ascii_lowercase();
+    let query = manix::Lowercase(query_lower.as_bytes());
     let entries = if opt.strict {
-        aggregate_source.search(&opt.query)
+        aggregate_source.search(&query)
     } else {
-        aggregate_source.search_liberal(&opt.query)
+        aggregate_source.search_liberal(&query)
     };
     let (entries, key_only_entries): (Vec<DocEntry>, Vec<DocEntry>) =
         entries.into_iter().partition(|e| {

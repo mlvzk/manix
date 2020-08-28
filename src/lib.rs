@@ -132,6 +132,7 @@ pub(crate) fn starts_with_insensitive_ascii(s: &[u8], prefix: &Lowercase) -> boo
     }
 
     for (i, b) in prefix.into_iter().enumerate() {
+        // this is safe because of the earlier if check
         if unsafe { s.get_unchecked(i) }.to_ascii_lowercase() != *b {
             return false;
         }
@@ -180,6 +181,10 @@ fn test_starts_with_insensitive_ascii() {
 fn test_contains_insensitive_ascii() {
     assert_eq!(
         contains_insensitive_ascii("abc".as_bytes(), &Lowercase(b"b")),
+        true
+    );
+    assert_eq!(
+        contains_insensitive_ascii("xabcx".as_bytes(), &Lowercase(b"abc")),
         true
     );
     assert_eq!(

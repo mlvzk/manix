@@ -148,7 +148,7 @@ pub(crate) fn contains_insensitive_ascii(s: &[u8], inner: &Lowercase) -> bool {
         return false;
     }
 
-    'outer: for i in 0..(s.len() - inner.len()) {
+    'outer: for i in 0..(s.len() - inner.len() + 1) {
         let target = &s[i..i + inner.len()];
         for (y, b) in target.into_iter().enumerate() {
             if *unsafe { inner.get_unchecked(y) } != b.to_ascii_lowercase() {
@@ -168,6 +168,10 @@ fn test_starts_with_insensitive_ascii() {
         true,
     );
     assert_eq!(
+        starts_with_insensitive_ascii("abc".as_bytes(), &Lowercase(b"abc")),
+        true,
+    );
+    assert_eq!(
         starts_with_insensitive_ascii("This is a string".as_bytes(), &Lowercase(b"x")),
         false,
     );
@@ -181,6 +185,10 @@ fn test_starts_with_insensitive_ascii() {
 fn test_contains_insensitive_ascii() {
     assert_eq!(
         contains_insensitive_ascii("abc".as_bytes(), &Lowercase(b"b")),
+        true
+    );
+    assert_eq!(
+        contains_insensitive_ascii("abc".as_bytes(), &Lowercase(b"abc")),
         true
     );
     assert_eq!(

@@ -1,4 +1,7 @@
-use crate::{Cache, DocEntry, DocSource, Errors};
+use crate::{
+    contains_insensitive_ascii, starts_with_insensitive_ascii, Cache, DocEntry, DocSource, Errors,
+    Lowercase,
+};
 use colored::*;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -68,17 +71,17 @@ impl DocSource for OptionsDatabase {
     fn all_keys(&self) -> Vec<&str> {
         self.options.keys().map(|x| x.as_ref()).collect()
     }
-    fn search(&self, query: &str) -> Vec<DocEntry> {
+    fn search(&self, query: &Lowercase) -> Vec<DocEntry> {
         self.options
             .iter()
-            .filter(|(key, _)| key.to_lowercase().starts_with(&query.to_lowercase()))
+            .filter(|(key, _)| starts_with_insensitive_ascii(key.as_bytes(), query))
             .map(|(_, d)| DocEntry::OptionDoc(d.clone()))
             .collect()
     }
-    fn search_liberal(&self, query: &str) -> Vec<DocEntry> {
+    fn search_liberal(&self, query: &Lowercase) -> Vec<DocEntry> {
         self.options
             .iter()
-            .filter(|(key, _)| key.to_lowercase().contains(&query.to_lowercase()))
+            .filter(|(key, _)| contains_insensitive_ascii(key.as_bytes(), query))
             .map(|(_, d)| DocEntry::OptionDoc(d.clone()))
             .collect()
     }

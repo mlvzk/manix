@@ -1,7 +1,10 @@
 use colored::*;
 use roxmltree::{self, Document};
 
-use crate::{Cache, DocEntry, DocSource, Errors};
+use crate::{
+    contains_insensitive_ascii, starts_with_insensitive_ascii, Cache, DocEntry, DocSource, Errors,
+    Lowercase,
+};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::PathBuf, process::Command};
 use walkdir::WalkDir;
@@ -122,17 +125,17 @@ impl DocSource for XmlFuncDocDatabase {
     fn all_keys(&self) -> Vec<&str> {
         self.functions.keys().map(|x| x.as_str()).collect()
     }
-    fn search(&self, query: &str) -> Vec<crate::DocEntry> {
+    fn search(&self, query: &Lowercase) -> Vec<crate::DocEntry> {
         self.functions
             .iter()
-            .filter(|(key, _)| key.to_lowercase().starts_with(&query.to_lowercase()))
+            .filter(|(key, _)| starts_with_insensitive_ascii(key.as_bytes(), query))
             .map(|(_, value)| DocEntry::XmlFuncDoc(value.clone()))
             .collect()
     }
-    fn search_liberal(&self, query: &str) -> Vec<DocEntry> {
+    fn search_liberal(&self, query: &Lowercase) -> Vec<DocEntry> {
         self.functions
             .iter()
-            .filter(|(key, _)| key.to_lowercase().contains(&query.to_lowercase()))
+            .filter(|(key, _)| contains_insensitive_ascii(key.as_bytes(), query))
             .map(|(_, value)| DocEntry::XmlFuncDoc(value.clone()))
             .collect()
     }

@@ -1,4 +1,7 @@
-use crate::{Cache, DocEntry, DocSource, Errors};
+use crate::{
+    contains_insensitive_ascii, starts_with_insensitive_ascii, Cache, DocEntry, DocSource, Errors,
+    Lowercase,
+};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, process::Command};
 
@@ -36,17 +39,17 @@ impl DocSource for NixpkgsTreeDatabase {
     fn all_keys(&self) -> Vec<&str> {
         self.keys.iter().map(|k| k.as_str()).collect()
     }
-    fn search(&self, query: &str) -> Vec<DocEntry> {
+    fn search(&self, query: &Lowercase) -> Vec<DocEntry> {
         self.keys
             .iter()
-            .filter(|k| k.to_lowercase().starts_with(&query.to_lowercase()))
+            .filter(|k| starts_with_insensitive_ascii(k.as_bytes(), query))
             .map(|k| DocEntry::NixpkgsTreeDoc(k.clone()))
             .collect()
     }
-    fn search_liberal(&self, query: &str) -> Vec<DocEntry> {
+    fn search_liberal(&self, query: &Lowercase) -> Vec<DocEntry> {
         self.keys
             .iter()
-            .filter(|k| k.to_lowercase().contains(&query.to_lowercase()))
+            .filter(|k| contains_insensitive_ascii(k.as_bytes(), query))
             .map(|k| DocEntry::NixpkgsTreeDoc(k.clone()))
             .collect()
     }

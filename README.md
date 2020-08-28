@@ -28,7 +28,7 @@ If you want to use it in your editor, check [ElKowar's rnix-lsp fork](https://gi
 ### fzf
 
 ```sh
-manix "" | grep '^# ' | sed 's/^# \(.*\) (.*/\1/;s/ (.*//;s/^# //' | fzf --preview="./target/release/manix '{}'" | xargs manix
+manix "" | grep '^# ' | sed 's/^# \(.*\) (.*/\1/;s/ (.*//;s/^# //' | fzf --preview="manix '{}'" | xargs manix
 ```
 
 ## Installation

@@ -25,6 +25,12 @@ If you want to use it in your editor, check [ElKowar's rnix-lsp fork](https://gi
 
 ![manix](/manix.png)
 
+### fzf
+
+```sh
+manix "" | grep '^# ' | sed 's/^# \(.*\) (.*/\1/;s/ (.*//;s/^# //' | fzf --preview="./target/release/manix '{}'" | xargs manix
+```
+
 ## Installation
 
 ### Nix

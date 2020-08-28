@@ -163,22 +163,31 @@ pub(crate) fn contains_insensitive_ascii(s: &[u8], inner: &Lowercase) -> bool {
 #[test]
 fn test_starts_with_insensitive_ascii() {
     assert_eq!(
-        starts_with_insensitive_ascii("This is a string".as_bytes(), "this ".as_bytes()),
+        starts_with_insensitive_ascii("This is a string".as_bytes(), &Lowercase(b"this ")),
         true,
     );
     assert_eq!(
-        starts_with_insensitive_ascii("This is a string".as_bytes(), "x".as_bytes()),
+        starts_with_insensitive_ascii("This is a string".as_bytes(), &Lowercase(b"x")),
         false,
     );
     assert_eq!(
-        starts_with_insensitive_ascii("thi".as_bytes(), "this ".as_bytes()),
+        starts_with_insensitive_ascii("thi".as_bytes(), &Lowercase(b"this ")),
         false,
     );
 }
 
 #[test]
 fn test_contains_insensitive_ascii() {
-    assert_eq!(contains_insensitive_ascii("abc".as_bytes(), b"b"), true);
-    assert_eq!(contains_insensitive_ascii("abc".as_bytes(), b"x"), false);
-    assert_eq!(contains_insensitive_ascii("abc".as_bytes(), b"abcd"), false);
+    assert_eq!(
+        contains_insensitive_ascii("abc".as_bytes(), &Lowercase(b"b")),
+        true
+    );
+    assert_eq!(
+        contains_insensitive_ascii("abc".as_bytes(), &Lowercase(b"x")),
+        false
+    );
+    assert_eq!(
+        contains_insensitive_ascii("abc".as_bytes(), &Lowercase(b"abcd")),
+        false
+    );
 }

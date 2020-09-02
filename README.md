@@ -33,10 +33,16 @@ manix "" | grep '^# ' | sed 's/^# \(.*\) (.*/\1/;s/ (.*//;s/^# //' | fzf --previ
 
 ## Installation
 
-### Nix
+### nix-env
 
 ```sh
 nix-env -i -f https://github.com/mlvzk/manix/archive/master.tar.gz
+```
+
+### Nix with flakes enabled
+
+``` sh
+$ nix run 'github.com/mlvzk/manix' mapAttrs
 ```
 
 ## Kudos

@@ -42,7 +42,7 @@ nix-env -i -f https://github.com/mlvzk/manix/archive/master.tar.gz
 ### Nix with flakes enabled
 
 ``` sh
-$ nix run 'github.com/mlvzk/manix' mapAttrs
+$ nix run 'github:mlvzk/manix' mapAttrs
 ```
 
 ## Kudos

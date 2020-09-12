@@ -1,6 +1,5 @@
 use comments_docsource::CommentDocumentation;
-use core::fmt;
-use options_docsource::OptionDocumentation;
+use options_docsource::{OptionDocumentation, OptionsDatabaseType};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use std::path::PathBuf;
 use thiserror::Error;
@@ -52,7 +51,7 @@ pub enum Errors {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum DocEntry {
-    OptionDoc(OptionDocumentation),
+    OptionDoc(OptionsDatabaseType, OptionDocumentation),
     CommentDoc(CommentDocumentation),
     XmlFuncDoc(XmlFuncDocumentation),
     NixpkgsTreeDoc(String),
@@ -61,7 +60,7 @@ pub enum DocEntry {
 impl DocEntry {
     pub fn name(&self) -> String {
         match self {
-            DocEntry::OptionDoc(x) => x.name(),
+            DocEntry::OptionDoc(_, x) => x.name(),
             DocEntry::CommentDoc(x) => x.name(),
             DocEntry::XmlFuncDoc(x) => x.name(),
             DocEntry::NixpkgsTreeDoc(x) => x.clone(),
@@ -69,10 +68,21 @@ impl DocEntry {
     }
     pub fn pretty_printed(&self) -> String {
         match self {
-            DocEntry::OptionDoc(x) => x.pretty_printed(),
+            DocEntry::OptionDoc(_, x) => x.pretty_printed(),
             DocEntry::CommentDoc(x) => x.pretty_printed(),
             DocEntry::XmlFuncDoc(x) => x.pretty_printed(),
             DocEntry::NixpkgsTreeDoc(x) => x.clone(),
+        }
+    }
+    pub fn source(&self) -> &str {
+        match self {
+            DocEntry::OptionDoc(typ, _) => match typ {
+                OptionsDatabaseType::NixOS => "NixOS Options",
+                OptionsDatabaseType::HomeManager => "HomeManager Options",
+            },
+            DocEntry::CommentDoc(_) => "Nixpkgs Comments",
+            DocEntry::XmlFuncDoc(_) => "NixOS Documentation",
+            DocEntry::NixpkgsTreeDoc(_) => "Nixpkgs Tree",
         }
     }
 }
@@ -121,7 +131,6 @@ impl DocSource for AggregateDocSource {
     }
 }
 
-#[repr(transparent)]
 pub struct Lowercase<'a>(pub &'a [u8]);
 
 pub(crate) fn starts_with_insensitive_ascii(s: &[u8], prefix: &Lowercase) -> bool {

@@ -11,6 +11,7 @@ use std::{
     path::{Path, PathBuf},
     process::Command,
 };
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct OptionDocumentation {
     #[serde(default)]
@@ -40,7 +41,7 @@ impl OptionDocumentation {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum OptionsDatabaseType {
     NixOS,
     HomeManager,
@@ -75,14 +76,14 @@ impl DocSource for OptionsDatabase {
         self.options
             .iter()
             .filter(|(key, _)| starts_with_insensitive_ascii(key.as_bytes(), query))
-            .map(|(_, d)| DocEntry::OptionDoc(d.clone()))
+            .map(|(_, d)| DocEntry::OptionDoc(self.typ, d.clone()))
             .collect()
     }
     fn search_liberal(&self, query: &Lowercase) -> Vec<DocEntry> {
         self.options
             .iter()
             .filter(|(key, _)| contains_insensitive_ascii(key.as_bytes(), query))
-            .map(|(_, d)| DocEntry::OptionDoc(d.clone()))
+            .map(|(_, d)| DocEntry::OptionDoc(self.typ, d.clone()))
             .collect()
     }
     fn update(&mut self) -> Result<bool, Errors> {

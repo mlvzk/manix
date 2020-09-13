@@ -33,6 +33,16 @@ manix "" | grep '^# ' | sed 's/^# \(.*\) (.*/\1/;s/ (.*//;s/^# //' | fzf --previ
 
 ## Installation
 
+### Github Releases (quickest)
+
+Since it can take some time to compile Manix, you can download statically-built executables from Github Releases.
+
+```sh
+wget https://github.com/mlvzk/manix/releases/latest/download/manix
+chmod +x manix
+mv manix ~/bin/ # or some other location in your $PATH
+```
+
 ### nix-env
 
 ```sh

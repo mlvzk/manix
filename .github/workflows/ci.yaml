@@ -1,0 +1,16 @@
+name: Static Musl Build
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      
+    - name: Build static
+      uses:  stevenleadbeater/rust-musl-builder@master
+      with:
+          args: /bin/bash -c "cargo build --release --target=x86_64-unknown-linux-musl"

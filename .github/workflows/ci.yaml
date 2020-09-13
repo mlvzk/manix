@@ -13,7 +13,7 @@ jobs:
     - name: Build static
       uses:  stevenleadbeater/rust-musl-builder@master
       with:
-          args: /bin/bash -c "cargo build --release --target=x86_64-unknown-linux-musl --out-dir manix"
+          args: /bin/bash -c "cargo build --release --target=x86_64-unknown-linux-musl --target-dir manix"
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1

@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use colored::*;
 use comments_docsource::CommentsDatabase;
 use manix::*;
 use options_docsource::{OptionsDatabase, OptionsDatabaseType};
@@ -196,30 +197,26 @@ fn main() -> Result<()> {
             }
         });
 
-    {
-        use colored::*;
-
-        if !key_only_entries.is_empty() {
-            const SHOW_MAX_LEN: usize = 50;
-            print!("{}", "Here's what I found in nixpkgs:".bold());
-            for entry in key_only_entries.iter().take(SHOW_MAX_LEN) {
-                print!(" {}", entry.name().white());
-            }
-            if key_only_entries.len() > SHOW_MAX_LEN {
-                print!(" and {} more.", key_only_entries.len() - SHOW_MAX_LEN);
-            }
-            println!("\n");
+    if !key_only_entries.is_empty() {
+        const SHOW_MAX_LEN: usize = 50;
+        print!("{}", "Here's what I found in nixpkgs:".bold());
+        for entry in key_only_entries.iter().take(SHOW_MAX_LEN) {
+            print!(" {}", entry.name().white());
         }
-
-        for entry in entries {
-            const LINE: &str = "────────────────────";
-            println!(
-                "{}\n{}\n{}",
-                entry.source().white(),
-                LINE.green(),
-                entry.pretty_printed()
-            );
+        if key_only_entries.len() > SHOW_MAX_LEN {
+            print!(" and {} more.", key_only_entries.len() - SHOW_MAX_LEN);
         }
+        println!("\n");
+    }
+
+    for entry in entries {
+        const LINE: &str = "────────────────────";
+        println!(
+            "{}\n{}\n{}",
+            entry.source().white(),
+            LINE.green(),
+            entry.pretty_printed()
+        );
     }
 
     Ok(())

@@ -36,8 +36,13 @@ manix "" | grep '^# ' | sed 's/^# \(.*\) (.*/\1/;s/ (.*//;s/^# //' | fzf --previ
 ### nix-env
 
 ```sh
-nix-env -i -f https://github.com/mlvzk/manix/archive/master.tar.gz
+sudo nix-env \
+	--option extra-substituters https://mlvzk.cachix.org/ \
+	--option trusted-public-keys 'mlvzk.cachix.org-1:OxRv8xos92A++mh82CsgVo8J6cHGSVCOBFx7a6nhbWo=' \
+	-i -f https://github.com/mlvzk/manix/archive/master.tar.gz
 ```
+
+If you're a trusted user or you don't wanna use the cachix cache you can run it without sudo.
 
 ### Nix with flakes enabled
 

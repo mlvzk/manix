@@ -1,9 +1,8 @@
-{ sources ? import ./nix/sources.nix
-, pkgs ? import sources.nixpkgs {}
+{ pkgs ? import <nixpkgs> {}
 }: pkgs.rustPlatform.buildRustPackage rec {
   pname = "manix";
   version = "0.6.0";
 
   src = ./.;
-  cargoSha256 = "0wpc65cl98lh2zdgrwxg07hhvfkmhwkb0xzyg6rd1v6xnh13g01j";
+  cargoSha256 = "078v4wgblc1cr5d1hk42i7qac1865bnm26cxxlvc6aya40ryxbv3";
 }

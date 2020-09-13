@@ -108,12 +108,12 @@ fn main() -> Result<()> {
 
     let mut comment_db = if !should_invalidate_cache && comment_cache_path.exists() {
         CommentsDatabase::load(&std::fs::read(&comment_cache_path)?)
-            .map_err(|e| anyhow::anyhow!("Failed to load NixOS comments database: {:?}", e))?
+            .map_err(|e| anyhow::anyhow!("Failed to load Nixpkgs comments database: {:?}", e))?
     } else {
         CommentsDatabase::new()
     };
     if comment_db.hash_to_defs.len() == 0 {
-        eprintln!("Building NixOS comments cache...");
+        eprintln!("Building Nixpkgs comments cache...");
     }
     let cache_invalid = comment_db
         .update()

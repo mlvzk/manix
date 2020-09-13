@@ -38,7 +38,7 @@ manix "" | grep '^# ' | sed 's/^# \(.*\) (.*/\1/;s/ (.*//;s/^# //' | fzf --previ
 ```sh
 sudo nix-env \
 	--option extra-substituters https://mlvzk.cachix.org/ \
-	--option trusted-public-keys 'mlvzk.cachix.org-1:OxRv8xos92A++mh82CsgVo8J6cHGSVCOBFx7a6nhbWo=' \
+	--option trusted-public-keys 'cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= mlvzk.cachix.org-1:OxRv8xos92A++mh82CsgVo8J6cHGSVCOBFx7a6nhbWo=' \
 	-i -f https://github.com/mlvzk/manix/archive/master.tar.gz
 ```
 

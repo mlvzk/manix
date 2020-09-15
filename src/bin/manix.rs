@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use colored::*;
 use comments_docsource::CommentsDatabase;
 use manix::*;
 use options_docsource::{OptionsDatabase, OptionsDatabaseType};
@@ -23,7 +24,8 @@ fn build_source_and_add<T>(
     name: &str,
     path: &PathBuf,
     aggregate: &mut AggregateDocSource,
-) where
+) -> Option<()>
+where
     T: 'static + DocSource + Cache + Sync,
 {
     eprintln!("Building {} cache...", name);
@@ -32,7 +34,7 @@ fn build_source_and_add<T>(
         .with_context(|| anyhow::anyhow!("Failed to update {}", name))
     {
         eprintln!("{:?}", e);
-        return;
+        return None;
     }
 
     if let Err(e) = source
@@ -40,23 +42,28 @@ fn build_source_and_add<T>(
         .with_context(|| format!("Failed to save {} cache", name))
     {
         eprintln!("{:?}", e);
-        return;
+        return None;
     }
 
     aggregate.add_source(Box::new(source));
+    Some(())
 }
 
 fn load_source_and_add<T>(
     load_result: Result<Result<T, Errors>, std::io::Error>,
     name: &str,
     aggregate: &mut AggregateDocSource,
-) where
+    ignore_file_io_error: bool,
+) -> Option<()>
+where
     T: 'static + DocSource + Cache + Sync,
 {
     let load_result = match load_result {
         Err(e) => {
-            eprintln!("Failed to load {} cache file: {:?}", name, e);
-            return;
+            if !ignore_file_io_error {
+                eprintln!("Failed to load {} cache file: {:?}", name, e);
+            }
+            return None;
         }
         Ok(r) => r,
     };
@@ -64,9 +71,11 @@ fn load_source_and_add<T>(
     match load_result.with_context(|| anyhow::anyhow!("Failed to load {}", name)) {
         Err(e) => {
             eprintln!("{:?}", e);
+            None
         }
         Ok(source) => {
             aggregate.add_source(Box::new(source));
+            Some(())
         }
     }
 }
@@ -123,12 +132,14 @@ fn main() -> Result<()> {
     aggregate_source.add_source(Box::new(comment_db));
 
     if should_invalidate_cache || opt.update_cache || cache_invalid {
-        build_source_and_add(
+        if let None = build_source_and_add(
             OptionsDatabase::new(OptionsDatabaseType::HomeManager),
             "Home Manager Options",
             &options_hm_cache_path,
             &mut aggregate_source,
-        );
+        ) {
+            eprintln!("Tip: If you installed your home-manager through configuration.nix you can fix this error by adding the home-manager channel with this command: {}", "nix-channel --add https://github.com/rycee/home-manager/archive/master.tar.gz home-manager && nix-channel --update".bold());
+        }
 
         build_source_and_add(
             OptionsDatabase::new(OptionsDatabaseType::NixOS),
@@ -157,12 +168,14 @@ fn main() -> Result<()> {
             std::fs::read(&options_hm_cache_path).map(|c| OptionsDatabase::load(&c)),
             "Home Manager Options",
             &mut aggregate_source,
+            true,
         );
 
         load_source_and_add(
             std::fs::read(&options_nixos_cache_path).map(|c| OptionsDatabase::load(&c)),
             "NixOS Options",
             &mut aggregate_source,
+            false,
         );
 
         load_source_and_add(
@@ -170,6 +183,7 @@ fn main() -> Result<()> {
                 .map(|c| nixpkgs_tree_docsource::NixpkgsTreeDatabase::load(&c)),
             "Nixpkgs Tree",
             &mut aggregate_source,
+            false,
         );
 
         load_source_and_add(
@@ -177,6 +191,7 @@ fn main() -> Result<()> {
                 .map(|c| xml_docsource::XmlFuncDocDatabase::load(&c)),
             "Nixpkgs Documentation",
             &mut aggregate_source,
+            false,
         );
     }
 
@@ -196,30 +211,26 @@ fn main() -> Result<()> {
             }
         });
 
-    {
-        use colored::*;
-
-        if !key_only_entries.is_empty() {
-            const SHOW_MAX_LEN: usize = 50;
-            print!("{}", "Here's what I found in nixpkgs:".bold());
-            for entry in key_only_entries.iter().take(SHOW_MAX_LEN) {
-                print!(" {}", entry.name().white());
-            }
-            if key_only_entries.len() > SHOW_MAX_LEN {
-                print!(" and {} more.", key_only_entries.len() - SHOW_MAX_LEN);
-            }
-            println!("\n");
+    if !key_only_entries.is_empty() {
+        const SHOW_MAX_LEN: usize = 50;
+        print!("{}", "Here's what I found in nixpkgs:".bold());
+        for entry in key_only_entries.iter().take(SHOW_MAX_LEN) {
+            print!(" {}", entry.name().white());
         }
-
-        for entry in entries {
-            const LINE: &str = "────────────────────";
-            println!(
-                "{}\n{}\n{}",
-                entry.source().white(),
-                LINE.green(),
-                entry.pretty_printed()
-            );
+        if key_only_entries.len() > SHOW_MAX_LEN {
+            print!(" and {} more.", key_only_entries.len() - SHOW_MAX_LEN);
         }
+        println!("\n");
+    }
+
+    for entry in entries {
+        const LINE: &str = "────────────────────";
+        println!(
+            "{}\n{}\n{}",
+            entry.source().white(),
+            LINE.green(),
+            entry.pretty_printed()
+        );
     }
 
     Ok(())

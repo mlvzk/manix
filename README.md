@@ -33,7 +33,11 @@ manix "" | grep '^# ' | sed 's/^# \(.*\) (.*/\1/;s/ (.*//;s/^# //' | fzf --previ
 
 ## Installation
 
-### Github Releases (quickest)
+### Update
+
+Manix is now available in nixpkgs. If you use the unstable channel installing is as easy as adding `manix` to your `environment.systemPackages` or `home.packages`.
+
+### Github Releases
 
 Since it can take some time to compile Manix, you can download statically-built executables from Github Releases.
 
@@ -46,6 +50,9 @@ mv manix ~/bin/ # or some other location in your $PATH
 ### nix-env
 
 ```sh
+# If you have the unstable channel on your system
+nix-env -f '<unstable>' -iA manix
+# OR
 nix-env -i -f https://github.com/mlvzk/manix/archive/master.tar.gz
 ```
 

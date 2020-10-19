@@ -81,7 +81,7 @@ impl DocEntry {
                 OptionsDatabaseType::HomeManager => "HomeManager Options",
             },
             DocEntry::CommentDoc(_) => "Nixpkgs Comments",
-            DocEntry::XmlFuncDoc(_) => "NixOS Documentation",
+            DocEntry::XmlFuncDoc(_) => "Nixpkgs Documentation",
             DocEntry::NixpkgsTreeDoc(_) => "Nixpkgs Tree",
         }
     }

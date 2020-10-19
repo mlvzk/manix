@@ -1,10 +1,28 @@
 use anyhow::{Context, Result};
 use colored::*;
 use comments_docsource::CommentsDatabase;
+use lazy_static::lazy_static;
 use manix::*;
 use options_docsource::{OptionsDatabase, OptionsDatabaseType};
 use std::path::PathBuf;
+use structopt::clap::arg_enum;
 use structopt::StructOpt;
+
+arg_enum! {
+    #[derive(Debug, PartialEq)]
+    #[allow(non_camel_case_types)]
+    enum Source {
+        nixos_options,
+        hm_options,
+        nixpkgs_doc,
+        nixpkgs_tree,
+        nixpkgs_comments,
+    }
+}
+
+lazy_static! {
+    static ref SOURCE_VARIANTS: String = Source::variants().join(",");
+}
 
 #[derive(StructOpt)]
 #[structopt(name = "manix")]
@@ -15,6 +33,9 @@ struct Opt {
     /// Matches entries stricly
     #[structopt(short, long)]
     strict: bool,
+    /// Restrict search to chosen sources
+    #[structopt(long, possible_values = &Source::variants(), default_value = &SOURCE_VARIANTS, use_delimiter = true)]
+    source: Vec<Source>,
     #[structopt(name = "QUERY")]
     query: String,
 }
@@ -23,7 +44,7 @@ fn build_source_and_add<T>(
     mut source: T,
     name: &str,
     path: &PathBuf,
-    aggregate: &mut AggregateDocSource,
+    aggregate: Option<&mut AggregateDocSource>,
 ) -> Option<()>
 where
     T: 'static + DocSource + Cache + Sync,
@@ -45,7 +66,9 @@ where
         return None;
     }
 
-    aggregate.add_source(Box::new(source));
+    if let Some(aggregate) = aggregate {
+        aggregate.add_source(Box::new(source));
+    }
     Some(())
 }
 
@@ -129,14 +152,20 @@ fn main() -> Result<()> {
         .map_err(|e| anyhow::anyhow!(e))
         .context("Failed to update cache")?;
     comment_db.save(&comment_cache_path)?;
-    aggregate_source.add_source(Box::new(comment_db));
+    if opt.source.contains(&Source::nixpkgs_comments) {
+        aggregate_source.add_source(Box::new(comment_db));
+    }
 
     if should_invalidate_cache || opt.update_cache || cache_invalid {
         if let None = build_source_and_add(
             OptionsDatabase::new(OptionsDatabaseType::HomeManager),
             "Home Manager Options",
             &options_hm_cache_path,
-            &mut aggregate_source,
+            if opt.source.contains(&Source::hm_options) {
+                Some(&mut aggregate_source)
+            } else {
+                None
+            },
         ) {
             eprintln!("Tip: If you installed your home-manager through configuration.nix you can fix this error by adding the home-manager channel with this command: {}", "nix-channel --add https://github.com/rycee/home-manager/archive/master.tar.gz home-manager && nix-channel --update".bold());
         }
@@ -145,54 +174,74 @@ fn main() -> Result<()> {
             OptionsDatabase::new(OptionsDatabaseType::NixOS),
             "NixOS Options",
             &options_nixos_cache_path,
-            &mut aggregate_source,
+            if opt.source.contains(&Source::nixos_options) {
+                Some(&mut aggregate_source)
+            } else {
+                None
+            },
         );
 
         build_source_and_add(
             nixpkgs_tree_docsource::NixpkgsTreeDatabase::new(),
             "Nixpkgs Tree",
             &nixpkgs_tree_cache_path,
-            &mut aggregate_source,
+            if opt.source.contains(&Source::nixpkgs_tree) {
+                Some(&mut aggregate_source)
+            } else {
+                None
+            },
         );
 
         build_source_and_add(
             xml_docsource::XmlFuncDocDatabase::new(),
             "Nixpkgs Documentation",
             &nixpkgs_doc_cache_path,
-            &mut aggregate_source,
+            if opt.source.contains(&Source::nixpkgs_doc) {
+                Some(&mut aggregate_source)
+            } else {
+                None
+            },
         );
 
         std::fs::write(&last_version_path, version)?;
     } else {
-        load_source_and_add(
-            std::fs::read(&options_hm_cache_path).map(|c| OptionsDatabase::load(&c)),
-            "Home Manager Options",
-            &mut aggregate_source,
-            true,
-        );
+        if opt.source.contains(&Source::hm_options) {
+            load_source_and_add(
+                std::fs::read(&options_hm_cache_path).map(|c| OptionsDatabase::load(&c)),
+                "Home Manager Options",
+                &mut aggregate_source,
+                true,
+            );
+        }
 
-        load_source_and_add(
-            std::fs::read(&options_nixos_cache_path).map(|c| OptionsDatabase::load(&c)),
-            "NixOS Options",
-            &mut aggregate_source,
-            false,
-        );
+        if opt.source.contains(&Source::nixos_options) {
+            load_source_and_add(
+                std::fs::read(&options_nixos_cache_path).map(|c| OptionsDatabase::load(&c)),
+                "NixOS Options",
+                &mut aggregate_source,
+                false,
+            );
+        }
 
-        load_source_and_add(
-            std::fs::read(&nixpkgs_tree_cache_path)
-                .map(|c| nixpkgs_tree_docsource::NixpkgsTreeDatabase::load(&c)),
-            "Nixpkgs Tree",
-            &mut aggregate_source,
-            false,
-        );
+        if opt.source.contains(&Source::nixpkgs_tree) {
+            load_source_and_add(
+                std::fs::read(&nixpkgs_tree_cache_path)
+                    .map(|c| nixpkgs_tree_docsource::NixpkgsTreeDatabase::load(&c)),
+                "Nixpkgs Tree",
+                &mut aggregate_source,
+                false,
+            );
+        }
 
-        load_source_and_add(
-            std::fs::read(&nixpkgs_doc_cache_path)
-                .map(|c| xml_docsource::XmlFuncDocDatabase::load(&c)),
-            "Nixpkgs Documentation",
-            &mut aggregate_source,
-            false,
-        );
+        if opt.source.contains(&Source::nixpkgs_doc) {
+            load_source_and_add(
+                std::fs::read(&nixpkgs_doc_cache_path)
+                    .map(|c| xml_docsource::XmlFuncDocDatabase::load(&c)),
+                "Nixpkgs Documentation",
+                &mut aggregate_source,
+                false,
+            );
+        }
     }
 
     let query_lower = opt.query.to_ascii_lowercase();

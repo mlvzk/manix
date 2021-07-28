@@ -14,6 +14,7 @@ arg_enum! {
     enum Source {
         nixos_options,
         hm_options,
+        nd_options,
         nixpkgs_doc,
         nixpkgs_tree,
         nixpkgs_comments,
@@ -122,6 +123,9 @@ fn main() -> Result<()> {
     let options_hm_cache_path = cache_dir
         .place_cache_file("options_hm_database.bin")
         .context("Failed to place home-manager options cache file")?;
+    let options_nd_cache_path = cache_dir
+        .place_cache_file("options_nd_database.bin")
+        .context("Failed to place nix-darwin options cache file")?;
     let options_nixos_cache_path = cache_dir
         .place_cache_file("options_nixos_database.bin")
         .context("Failed to place NixOS options cache file")?;
@@ -170,6 +174,19 @@ fn main() -> Result<()> {
             eprintln!("Tip: If you installed your home-manager through configuration.nix you can fix this error by adding the home-manager channel with this command: {}", "nix-channel --add https://github.com/rycee/home-manager/archive/master.tar.gz home-manager && nix-channel --update".bold());
         }
 
+        if let None = build_source_and_add(
+            OptionsDatabase::new(OptionsDatabaseType::NixDarwin),
+            "Nix-Darwin Options",
+            &options_nd_cache_path,
+            if opt.source.contains(&Source::nd_options) {
+                Some(&mut aggregate_source)
+            } else {
+                None
+            },
+        ) {
+            eprintln!("Tip: Ensure darwin is set in your NIX_PATH");
+        }
+
         build_source_and_add(
             OptionsDatabase::new(OptionsDatabaseType::NixOS),
             "NixOS Options",
@@ -205,6 +222,15 @@ fn main() -> Result<()> {
 
         std::fs::write(&last_version_path, version)?;
     } else {
+        if opt.source.contains(&Source::nd_options) {
+            load_source_and_add(
+                std::fs::read(&options_nd_cache_path).map(|c| OptionsDatabase::load(&c)),
+                "Nix Darwin Options",
+                &mut aggregate_source,
+                true,
+            );
+        }
+
         if opt.source.contains(&Source::hm_options) {
             load_source_and_add(
                 std::fs::read(&options_hm_cache_path).map(|c| OptionsDatabase::load(&c)),

@@ -77,6 +77,7 @@ impl DocEntry {
     pub fn source(&self) -> &str {
         match self {
             DocEntry::OptionDoc(typ, _) => match typ {
+                OptionsDatabaseType::NixDarwin => "NixDarwin Options",
                 OptionsDatabaseType::NixOS => "NixOS Options",
                 OptionsDatabaseType::HomeManager => "HomeManager Options",
             },

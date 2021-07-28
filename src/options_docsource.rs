@@ -43,6 +43,7 @@ impl OptionDocumentation {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum OptionsDatabaseType {
+    NixDarwin,
     NixOS,
     HomeManager,
 }
@@ -88,6 +89,7 @@ impl DocSource for OptionsDatabase {
     }
     fn update(&mut self) -> Result<bool, Errors> {
         let opts = match self.typ {
+            OptionsDatabaseType::NixDarwin => try_from_file(&get_nd_json_doc_path()?)?,
             OptionsDatabaseType::NixOS => try_from_file(&get_nixos_json_doc_path()?)?,
             OptionsDatabaseType::HomeManager => try_from_file(&get_hm_json_doc_path()?)?,
         };
@@ -99,6 +101,21 @@ impl DocSource for OptionsDatabase {
 }
 
 impl Cache for OptionsDatabase {}
+
+pub fn get_nd_json_doc_path() -> Result<PathBuf, std::io::Error> {
+    let base_path_output = Command::new("nix-build")
+        .env("NIXPKGS_ALLOW_UNFREE", "1")
+        .env("NIXPKGS_ALLOW_BROKEN", "1")
+        .env("NIXPKGS_ALLOW_INSECURE", "1")
+        .env("NIXPKGS_ALLOW_UNSUPPORTED_SYSTEM", "1")
+        .arg("--no-out-link")
+        .arg("-E")
+        .arg(include_str!("nix/darwin-options.nix"))
+        .output()
+        .map(|o| String::from_utf8(o.stdout).unwrap())?;
+
+    Ok(PathBuf::from(base_path_output.trim_end_matches("\n")))
+}
 
 pub fn get_hm_json_doc_path() -> Result<PathBuf, std::io::Error> {
     let base_path_output = Command::new("nix-build")
@@ -122,6 +139,7 @@ pub fn get_nixos_json_doc_path() -> Result<PathBuf, std::io::Error> {
         .env("NIXPKGS_ALLOW_UNFREE", "1")
         .env("NIXPKGS_ALLOW_BROKEN", "1")
         .env("NIXPKGS_ALLOW_INSECURE", "1")
+        .env("NIXPKGS_ALLOW_UNSUPPORTED_SYSTEM", "1")
         .arg("--no-out-link")
         .arg("-E")
         .arg(include_str!("nix/nixos-options.nix"))

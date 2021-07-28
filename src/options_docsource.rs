@@ -124,7 +124,7 @@ pub fn get_nixos_json_doc_path() -> Result<PathBuf, std::io::Error> {
         .env("NIXPKGS_ALLOW_INSECURE", "1")
         .arg("--no-out-link")
         .arg("-E")
-        .arg(r#"with import <nixpkgs> {}; let eval = import (pkgs.path + "/nixos/lib/eval-config.nix") { modules = []; }; opts = (nixosOptionsDoc { options = eval.options; }).optionsJSON; in runCommandLocal "options.json" { inherit opts; } "cp $opts/share/doc/nixos/options.json $out""#)
+        .arg(include_str!("nix/nixos-options.nix"))
         .output()
         .map(|o| String::from_utf8(o.stdout).unwrap())?;
 

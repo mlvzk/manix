@@ -107,7 +107,7 @@ pub fn get_hm_json_doc_path() -> Result<PathBuf, std::io::Error> {
             r#"{ pkgs ? import <nixpkgs> {} }:
             let
                 hmargs = { pkgs = pkgs; lib = import (<home-manager/modules/lib/stdlib-extended.nix>) pkgs.lib; };
-                docs = import (<home-manager/doc>) hmargs;
+                docs = import (<home-manager/docs>) hmargs;
             in (if builtins.isFunction docs then docs hmargs else docs).options.json
         "#)
         .output()

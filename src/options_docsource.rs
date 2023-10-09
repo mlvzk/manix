@@ -4,13 +4,7 @@ use crate::{
 };
 use colored::*;
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::HashMap,
-    fs::File,
-    io::BufReader,
-    path::{Path, PathBuf},
-    process::Command,
-};
+use std::{collections::HashMap, path::PathBuf, process::Command};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct OptionDocumentation {

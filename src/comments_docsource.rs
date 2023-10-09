@@ -33,7 +33,7 @@ fn find_comments(node: SyntaxNode) -> Option<Vec<String>> {
 
         match node.kind() {
             SyntaxKind::TOKEN_COMMENT => match &node {
-                NodeOrToken::Token(token) => comments.push(token.text().clone().into()),
+                NodeOrToken::Token(token) => comments.push(token.text().into()),
                 NodeOrToken::Node(_) => unreachable!(),
             },
             // This stuff is found as part of `the-fn = f: ...`
@@ -174,12 +174,17 @@ impl DocSource for CommentsDatabase {
     fn update(&mut self) -> Result<bool, Errors> {
         let files = find_nix_files(get_nixpkgs_root())
             .par_iter()
-            .map(|f| {
-                let content = std::fs::read_to_string(f.path()).unwrap();
-                let mut hasher = crc32fast::Hasher::new();
-                hasher.update(content.as_bytes());
-                let hash = hasher.finalize();
-                (hash, f.path().to_path_buf(), content)
+            .filter_map(|f| match std::fs::read_to_string(f.path()) {
+                Ok(content) => {
+                    let mut hasher = crc32fast::Hasher::new();
+                    hasher.update(content.as_bytes());
+                    let hash = hasher.finalize();
+                    Some((hash, f.path().to_path_buf(), content))
+                }
+                Err(_) => {
+                    eprintln!("Skipped {}", f.path().to_str()?);
+                    None
+                }
             })
             .collect::<Vec<(u32, PathBuf, String)>>();
 
@@ -233,6 +238,7 @@ fn find_nix_files(path: PathBuf) -> Vec<walkdir::DirEntry> {
         .into_iter()
         .filter_map(Result::ok)
         .filter(|e| !e.file_type().is_dir())
+        .filter(|e| !e.path().to_str().unwrap().contains("test"))
         .filter(|e| e.path().extension().and_then(|s| s.to_str()) == Some("nix"))
         .collect::<Vec<walkdir::DirEntry>>()
 }

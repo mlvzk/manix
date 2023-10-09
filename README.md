@@ -42,7 +42,7 @@ Manix is now available in nixpkgs. If you use the unstable channel installing is
 Since it can take some time to compile Manix, you can download statically-built executables from Github Releases.
 
 ```sh
-wget https://github.com/mlvzk/manix/releases/latest/download/manix
+wget https://github.com/lecoqjacob/manix/releases/latest/download/manix
 chmod +x manix
 mv manix ~/bin/ # or some other location in your $PATH
 ```
@@ -53,13 +53,15 @@ mv manix ~/bin/ # or some other location in your $PATH
 # If you have the unstable channel on your system
 nix-env -f '<unstable>' -iA manix
 # OR
-nix-env -i -f https://github.com/mlvzk/manix/archive/master.tar.gz
+nix-env -i -f https://github.com/lecoqjacob/manix/archive/master.tar.gz
+# OR
+nix profile install github:lecoqjacob/manix/latest
 ```
 
 ### Nix with flakes enabled
 
 ``` sh
-$ nix run 'github:mlvzk/manix' mapAttrs
+$ nix run 'github:lecoqjacob/manix' mapAttrs
 ```
 
 ## Kudos

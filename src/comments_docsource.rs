@@ -5,14 +5,13 @@ use crate::{
 use colored::*;
 use lazy_static::lazy_static;
 use rayon::prelude::*;
-use rnix::{
-    types::{AttrSet, EntryHolder, Ident, KeyValue, Lambda, TypedNode},
-    NodeOrToken, SyntaxKind, SyntaxNode, WalkEvent,
-};
+use rnix::ast::{AttrSet, Entry, HasEntry, Ident, Lambda};
+use rnix::{NodeOrToken, Root, SyntaxKind, SyntaxNode, WalkEvent};
+use rowan::ast::AstNode;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::{path::PathBuf, process::Command};
 
+use std::{path::PathBuf, process::Command};
 lazy_static! {
     static ref NIXPKGS_PATH: PathBuf = get_nixpkgs_root();
 }
@@ -38,7 +37,7 @@ fn find_comments(node: SyntaxNode) -> Option<Vec<String>> {
             },
             // This stuff is found as part of `the-fn = f: ...`
             // here:                           ^^^^^^^^
-            SyntaxKind::NODE_KEY | SyntaxKind::TOKEN_ASSIGN => (),
+            SyntaxKind::NODE_ATTRPATH | SyntaxKind::TOKEN_ASSIGN => (),
             t if t.is_trivia() => (),
             _ => break,
         }
@@ -49,11 +48,11 @@ fn find_comments(node: SyntaxNode) -> Option<Vec<String>> {
     Some(comments)
 }
 
-fn visit_attr_entry(entry: KeyValue) -> Option<CommentDocumentation> {
-    let ident = Ident::cast(entry.key()?.path().nth(0)?)?.node().text();
-    let lambda = Lambda::cast(entry.value()?)?;
+fn visit_attr_entry(entry: Entry) -> Option<CommentDocumentation> {
+    let ident = Ident::cast(entry.syntax().clone())?;
+    let lambda = Lambda::cast(entry.syntax().clone())?;
 
-    let comments = find_comments(lambda.node().clone()).unwrap_or_default();
+    let comments = find_comments(lambda.syntax().clone()).unwrap_or_default();
 
     Some(CommentDocumentation::new(ident.to_string(), comments))
 }
@@ -64,9 +63,9 @@ fn visit_attrset(set: &AttrSet) -> Vec<CommentDocumentation> {
         .collect()
 }
 
-fn walk_ast(ast: rnix::AST) -> Vec<CommentDocumentation> {
+fn walk_ast(ast: Root) -> Vec<CommentDocumentation> {
     let mut res = Vec::<CommentDocumentation>::new();
-    for ev in ast.node().preorder_with_tokens() {
+    for ev in ast.expr().unwrap().syntax().preorder_with_tokens() {
         match ev {
             WalkEvent::Enter(enter) => {
                 if let Some(set) = enter.into_node().and_then(AttrSet::cast) {
@@ -192,7 +191,7 @@ impl DocSource for CommentsDatabase {
             .par_iter()
             .filter(|(hash, _, _)| !self.is_in_cache(hash))
             .map(|(hash, path, content)| {
-                let ast = rnix::parse(&content);
+                let ast = rnix::Root::parse(&content).ok().unwrap();
                 let definitions = walk_ast(ast)
                     .into_iter()
                     .map(|def| def.with_path(path.clone()))

@@ -2,7 +2,7 @@
 
 A fast CLI documentation searcher for Nix.
 
-## Supported sources:
+## Supported sources
 
 - Nixpkgs Documentation
 - Nixpkgs Comments
@@ -61,7 +61,7 @@ nix profile install github:lecoqjacob/manix/latest
 ### Nix with flakes enabled
 
 ``` sh
-$ nix run 'github:lecoqjacob/manix' mapAttrs
+nix run 'github:lecoqjacob/manix' mapAttrs
 ```
 
 ## Kudos

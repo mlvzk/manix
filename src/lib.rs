@@ -78,6 +78,7 @@ impl DocEntry {
         match self {
             DocEntry::OptionDoc(typ, _) => match typ {
                 OptionsDatabaseType::NixOS => "NixOS Options",
+                OptionsDatabaseType::NixDarwin => "NixDarwin Options",
                 OptionsDatabaseType::HomeManager => "HomeManager Options",
             },
             DocEntry::CommentDoc(_) => "Nixpkgs Comments",

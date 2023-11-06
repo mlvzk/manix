@@ -38,6 +38,7 @@ impl OptionDocumentation {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum OptionsDatabaseType {
     NixOS,
+    NixDarwin,
     HomeManager,
 }
 
@@ -83,6 +84,7 @@ impl DocSource for OptionsDatabase {
     fn update(&mut self) -> Result<bool, Errors> {
         let opts = match self.typ {
             OptionsDatabaseType::NixOS => try_from_file(&get_nixos_json_doc_path()?)?,
+            OptionsDatabaseType::NixDarwin => try_from_file(&get_nd_json_doc_path()?)?,
             OptionsDatabaseType::HomeManager => try_from_file(&get_hm_json_doc_path()?)?,
         };
 
@@ -96,14 +98,11 @@ impl Cache for OptionsDatabase {}
 
 pub fn get_hm_json_doc_path() -> Result<PathBuf, std::io::Error> {
     let base_path_output = Command::new("nix-build")
+        .env("NIXPKGS_ALLOW_UNFREE", "1")
+        .env("NIXPKGS_ALLOW_BROKEN", "1")
+        .env("NIXPKGS_ALLOW_INSECURE", "1")
         .arg("-E")
-        .arg(
-            r#"{ pkgs ? import <nixpkgs> {} }:
-            let
-                hmargs = { pkgs = pkgs; lib = import (<home-manager/modules/lib/stdlib-extended.nix>) pkgs.lib; };
-                docs = import (<home-manager/doc>) hmargs;
-            in (if builtins.isFunction docs then docs hmargs else docs).options.json
-        "#)
+        .arg(include_str!("nix/hm-options.nix"))
         .output()
         .map(|o| String::from_utf8(o.stdout).unwrap())?;
 
@@ -118,9 +117,26 @@ pub fn get_nixos_json_doc_path() -> Result<PathBuf, std::io::Error> {
         .env("NIXPKGS_ALLOW_INSECURE", "1")
         .arg("--no-out-link")
         .arg("-E")
-        .arg(r#"with import <nixpkgs> {}; let eval = import (pkgs.path + "/nixos/lib/eval-config.nix") { modules = []; }; opts = (nixosOptionsDoc { options = eval.options; }).optionsJSON; in runCommandLocal "options.json" { inherit opts; } "cp $opts/share/doc/nixos/options.json $out""#)
+        .arg(include_str!("nix/nixos-options.nix"))
         .output()
         .map(|o| String::from_utf8(o.stdout).unwrap())?;
+
+    Ok(PathBuf::from(base_path_output.trim_end_matches("\n")))
+}
+
+pub fn get_nd_json_doc_path() -> Result<PathBuf, std::io::Error> {
+    let base_path_output = Command::new("nix-build")
+        .env("NIXPKGS_ALLOW_UNFREE", "1")
+        .env("NIXPKGS_ALLOW_BROKEN", "1")
+        .env("NIXPKGS_ALLOW_INSECURE", "1")
+        .env("NIXPKGS_ALLOW_UNSUPPORTED_SYSTEM", "1")
+        .arg("--no-out-link")
+        .arg("-E")
+        .arg(include_str!("nix/darwin-options.nix"))
+        .output()
+        .map(|o| String::from_utf8(o.stdout).unwrap())?;
+
+    println!("{}", base_path_output.trim_end_matches("\n"));
 
     Ok(PathBuf::from(base_path_output.trim_end_matches("\n")))
 }

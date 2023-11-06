@@ -8,6 +8,7 @@ A fast CLI documentation searcher for Nix.
 - Nixpkgs Comments
 - Nixpkgs Tree (pkgs., pkgs.lib.)
 - NixOS Options
+- Nix-Darwin Options
 - Home-Manager Options
 
 ## Usage

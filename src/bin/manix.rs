@@ -12,8 +12,9 @@ arg_enum! {
     #[derive(Debug, PartialEq)]
     #[allow(non_camel_case_types)]
     enum Source {
-        nixos_options,
         hm_options,
+        nd_options,
+        nixos_options,
         nixpkgs_doc,
         nixpkgs_tree,
         nixpkgs_comments,
@@ -113,18 +114,21 @@ fn main() -> Result<()> {
         .place_cache_file("last_version.txt")
         .context("Failed to place last version file")?;
 
+    let options_nd_cache_path = cache_dir
+        .place_cache_file("options_nd_database.bin")
+        .context("Failed to place nix-darwin options cache file")?;
+    let options_nixos_cache_path = cache_dir
+        .place_cache_file("options_nixos_database.bin")
+        .context("Failed to place NixOS options cache file")?;
+    let options_hm_cache_path = cache_dir
+        .place_cache_file("options_hm_database.bin")
+        .context("Failed to place home-manager options cache file")?;
     let comment_cache_path = cache_dir
         .place_cache_file("comments.bin")
         .context("Failed to place cache file")?;
     let nixpkgs_tree_cache_path = cache_dir
         .place_cache_file("nixpkgs_tree.bin")
         .context("Failed to place nixpkgs tree cache file")?;
-    let options_hm_cache_path = cache_dir
-        .place_cache_file("options_hm_database.bin")
-        .context("Failed to place home-manager options cache file")?;
-    let options_nixos_cache_path = cache_dir
-        .place_cache_file("options_nixos_database.bin")
-        .context("Failed to place NixOS options cache file")?;
     let nixpkgs_doc_cache_path = cache_dir
         .place_cache_file("nixpkgs_doc_database.bin")
         .context("Failed to place Nixpkgs Documentation cache file")?;
@@ -147,6 +151,7 @@ fn main() -> Result<()> {
     if comment_db.hash_to_defs.len() == 0 {
         eprintln!("Building Nixpkgs comments cache...");
     }
+
     let cache_invalid = comment_db
         .update()
         .map_err(|e| anyhow::anyhow!(e))
@@ -168,6 +173,19 @@ fn main() -> Result<()> {
             },
         ) {
             eprintln!("Tip: If you installed your home-manager through configuration.nix you can fix this error by adding the home-manager channel with this command: {}", "nix-channel --add https://github.com/rycee/home-manager/archive/master.tar.gz home-manager && nix-channel --update".bold());
+        }
+
+        if let None = build_source_and_add(
+            OptionsDatabase::new(OptionsDatabaseType::NixDarwin),
+            "Nix-Darwin Options",
+            &options_nd_cache_path,
+            if opt.source.contains(&Source::nd_options) {
+                Some(&mut aggregate_source)
+            } else {
+                None
+            },
+        ) {
+            eprintln!("Tip: Ensure darwin is set in your NIX_PATH");
         }
 
         build_source_and_add(
@@ -205,21 +223,30 @@ fn main() -> Result<()> {
 
         std::fs::write(&last_version_path, version)?;
     } else {
-        if opt.source.contains(&Source::hm_options) {
-            load_source_and_add(
-                std::fs::read(&options_hm_cache_path).map(|c| OptionsDatabase::load(&c)),
-                "Home Manager Options",
-                &mut aggregate_source,
-                true,
-            );
-        }
-
         if opt.source.contains(&Source::nixos_options) {
             load_source_and_add(
                 std::fs::read(&options_nixos_cache_path).map(|c| OptionsDatabase::load(&c)),
                 "NixOS Options",
                 &mut aggregate_source,
                 false,
+            );
+        }
+
+        if opt.source.contains(&Source::nd_options) {
+            load_source_and_add(
+                std::fs::read(&options_nd_cache_path).map(|c| OptionsDatabase::load(&c)),
+                "Nix Darwin Options",
+                &mut aggregate_source,
+                true,
+            );
+        }
+
+        if opt.source.contains(&Source::hm_options) {
+            load_source_and_add(
+                std::fs::read(&options_hm_cache_path).map(|c| OptionsDatabase::load(&c)),
+                "Home Manager Options",
+                &mut aggregate_source,
+                true,
             );
         }
 

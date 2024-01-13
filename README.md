@@ -6,7 +6,7 @@ A fast CLI documentation searcher for Nix.
 
 - Nixpkgs Documentation
 - Nixpkgs Comments
-- Nixpkgs Tree (pkgs., pkgs.lib.)
+- Nixpkgs Tree (pkgs, pkgs.lib)
 - NixOS Options
 - Nix-Darwin Options
 - Home-Manager Options
@@ -43,7 +43,7 @@ Manix is now available in nixpkgs. If you use the unstable channel installing is
 Since it can take some time to compile Manix, you can download statically-built executables from Github Releases.
 
 ```sh
-wget https://github.com/lecoqjacob/manix/releases/latest/download/manix
+wget https://github.com/nix-community/manix/releases/latest/download/manix
 chmod +x manix
 mv manix ~/bin/ # or some other location in your $PATH
 ```
@@ -54,15 +54,15 @@ mv manix ~/bin/ # or some other location in your $PATH
 # If you have the unstable channel on your system
 nix-env -f '<unstable>' -iA manix
 # OR
-nix-env -i -f https://github.com/lecoqjacob/manix/archive/master.tar.gz
+nix-env -i -f https://github.com/nix-community/manix/archive/master.tar.gz
 # OR
-nix profile install github:lecoqjacob/manix/latest
+nix profile install github:nix-community/manix/latest
 ```
 
 ### Nix with flakes enabled
 
 ``` sh
-nix run 'github:lecoqjacob/manix' mapAttrs
+nix run 'github:nix-community/manix' mapAttrs
 ```
 
 ## Kudos

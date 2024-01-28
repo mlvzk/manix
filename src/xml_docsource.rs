@@ -1,12 +1,26 @@
-use colored::*;
-use roxmltree::{self, Document};
-
 use crate::{
-    contains_insensitive_ascii, starts_with_insensitive_ascii, Cache, DocEntry, DocSource, Errors,
+    contains_insensitive_ascii,
+    starts_with_insensitive_ascii,
+    Cache,
+    DocEntry,
+    DocSource,
+    Errors,
     Lowercase,
 };
-use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, path::PathBuf, process::Command};
+use colored::*;
+use roxmltree::{
+    self,
+    Document,
+};
+use serde::{
+    Deserialize,
+    Serialize,
+};
+use std::{
+    collections::HashMap,
+    path::PathBuf,
+    process::Command,
+};
 use walkdir::WalkDir;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -56,7 +70,7 @@ impl XmlFuncDocumentation {
         let fn_type = node
             .descendants()
             .find(|n| {
-                is_tag(&n, "subtitle")
+                is_tag(n, "subtitle")
                     && n.first_element_child()
                         .map_or(false, |n| is_tag(&n, "literal"))
             })
@@ -66,13 +80,13 @@ impl XmlFuncDocumentation {
 
         let args: Vec<_> = node
             .descendants()
-            .find(|n| is_tag(&n, "variablelist"))
+            .find(|n| is_tag(n, "variablelist"))
             .map(|list| {
                 list.children()
                     .filter(|n| n.is_element())
                     .filter_map(|entry| {
-                        let name = entry.descendants().find(|n| is_tag(&n, "varname"));
-                        let desc = entry.descendants().find(|n| is_tag(&n, "para"));
+                        let name = entry.descendants().find(|n| is_tag(n, "varname"));
+                        let desc = entry.descendants().find(|n| is_tag(n, "para"));
                         if let (Some(name), Some(desc)) =
                             (name.and_then(|x| x.text()), desc.and_then(|x| x.text()))
                         {
@@ -87,8 +101,8 @@ impl XmlFuncDocumentation {
 
         let example = node
             .descendants()
-            .find(|n| is_tag(&n, "example"))
-            .and_then(|n| n.descendants().find(|n| is_tag(&n, "programlisting")))
+            .find(|n| is_tag(n, "example"))
+            .and_then(|n| n.descendants().find(|n| is_tag(n, "programlisting")))
             .map(|n| {
                 n.descendants()
                     .filter_map(|n| n.text())
@@ -109,6 +123,12 @@ impl XmlFuncDocumentation {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct XmlFuncDocDatabase {
     pub functions: HashMap<String, XmlFuncDocumentation>,
+}
+
+impl Default for XmlFuncDocDatabase {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl XmlFuncDocDatabase {
@@ -154,7 +174,7 @@ impl DocSource for XmlFuncDocDatabase {
 
             let mut function_entries = document
                 .descendants()
-                .filter(|x| is_tag(&x, "section"))
+                .filter(|x| is_tag(x, "section"))
                 .filter(|x| {
                     x.first_element_child().map_or(false, |c| {
                         is_tag(&c, "title")
@@ -196,5 +216,5 @@ fn generate_docs() -> PathBuf {
         .ok()
         .and_then(|o| String::from_utf8(o.stdout).ok())
         .unwrap();
-    PathBuf::from(doc_path.trim_end_matches("\n")).join("function-docs")
+    PathBuf::from(doc_path.trim_end_matches('\n')).join("function-docs")
 }

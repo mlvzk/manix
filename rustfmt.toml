@@ -1,0 +1,13 @@
+comment_width = 100
+format_code_in_doc_comments = true
+imports_granularity = "Crate"
+imports_layout = "Vertical"
+wrap_comments = true
+
+# The following lines may be uncommented on nightly Rust.
+# Once these features have stabilized, they should be added to the always-enabled options above.
+# unstable_features = true
+# imports_granularity = "Crate"
+# wrap_comments = true
+# comment_width = 100
+# normalize_comments = true

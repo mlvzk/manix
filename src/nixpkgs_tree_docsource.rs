@@ -1,13 +1,30 @@
 use crate::{
-    contains_insensitive_ascii, starts_with_insensitive_ascii, Cache, DocEntry, DocSource, Errors,
+    contains_insensitive_ascii,
+    starts_with_insensitive_ascii,
+    Cache,
+    DocEntry,
+    DocSource,
+    Errors,
     Lowercase,
 };
-use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, process::Command};
+use serde::{
+    Deserialize,
+    Serialize,
+};
+use std::{
+    collections::HashMap,
+    process::Command,
+};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NixpkgsTreeDatabase {
     keys: Vec<String>,
+}
+
+impl Default for NixpkgsTreeDatabase {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl NixpkgsTreeDatabase {
@@ -19,10 +36,10 @@ impl NixpkgsTreeDatabase {
 #[derive(Serialize, Deserialize)]
 struct Keys(HashMap<String, Keys>);
 
-impl Into<Vec<String>> for Keys {
-    fn into(self) -> Vec<String> {
+impl From<Keys> for Vec<String> {
+    fn from(val: Keys) -> Self {
         let mut res = Vec::<String>::new();
-        for (mut name, keys) in self.0 {
+        for (mut name, keys) in val.0 {
             res.push(name.clone());
             name.push('.');
             for key in Into::<Vec<String>>::into(keys) {

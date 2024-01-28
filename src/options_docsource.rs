@@ -1,10 +1,22 @@
 use crate::{
-    contains_insensitive_ascii, starts_with_insensitive_ascii, Cache, DocEntry, DocSource, Errors,
+    contains_insensitive_ascii,
+    starts_with_insensitive_ascii,
+    Cache,
+    DocEntry,
+    DocSource,
+    Errors,
     Lowercase,
 };
 use colored::*;
-use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, path::PathBuf, process::Command};
+use serde::{
+    Deserialize,
+    Serialize,
+};
+use std::{
+    collections::HashMap,
+    path::PathBuf,
+    process::Command,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct OptionDocumentation {
@@ -106,7 +118,7 @@ pub fn get_hm_json_doc_path() -> Result<PathBuf, std::io::Error> {
         .output()
         .map(|o| String::from_utf8(o.stdout).unwrap())?;
 
-    Ok(PathBuf::from(base_path_output.trim_end_matches("\n"))
+    Ok(PathBuf::from(base_path_output.trim_end_matches('\n'))
         .join("share/doc/home-manager/options.json"))
 }
 
@@ -121,7 +133,7 @@ pub fn get_nixos_json_doc_path() -> Result<PathBuf, std::io::Error> {
         .output()
         .map(|o| String::from_utf8(o.stdout).unwrap())?;
 
-    Ok(PathBuf::from(base_path_output.trim_end_matches("\n")))
+    Ok(PathBuf::from(base_path_output.trim_end_matches('\n')))
 }
 
 pub fn get_nd_json_doc_path() -> Result<PathBuf, std::io::Error> {
@@ -136,7 +148,7 @@ pub fn get_nd_json_doc_path() -> Result<PathBuf, std::io::Error> {
         .output()
         .map(|o| String::from_utf8(o.stdout).unwrap())?;
 
-    println!("{}", base_path_output.trim_end_matches("\n"));
+    println!("{}", base_path_output.trim_end_matches('\n'));
 
-    Ok(PathBuf::from(base_path_output.trim_end_matches("\n")))
+    Ok(PathBuf::from(base_path_output.trim_end_matches('\n')))
 }

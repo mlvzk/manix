@@ -1,12 +1,20 @@
-use anyhow::{Context, Result};
+use anyhow::{
+    Context,
+    Result,
+};
 use colored::*;
 use comments_docsource::CommentsDatabase;
 use lazy_static::lazy_static;
 use manix::*;
-use options_docsource::{OptionsDatabase, OptionsDatabaseType};
+use options_docsource::{
+    OptionsDatabase,
+    OptionsDatabaseType,
+};
 use std::path::PathBuf;
-use structopt::clap::arg_enum;
-use structopt::StructOpt;
+use structopt::{
+    clap::arg_enum,
+    StructOpt,
+};
 
 arg_enum! {
     #[derive(Debug, PartialEq)]
@@ -31,12 +39,16 @@ struct Opt {
     /// Force update cache
     #[structopt(short, long)]
     update_cache: bool,
+
     /// Matches entries stricly
     #[structopt(short, long)]
     strict: bool,
+
     /// Restrict search to chosen sources
     #[structopt(long, possible_values = &Source::variants(), default_value = &SOURCE_VARIANTS, use_delimiter = true)]
     source: Vec<Source>,
+
+    /// Query to search for
     #[structopt(name = "QUERY")]
     query: String,
 }
@@ -60,7 +72,7 @@ where
     }
 
     if let Err(e) = source
-        .save(&path)
+        .save(path)
         .with_context(|| format!("Failed to save {} cache", name))
     {
         eprintln!("{:?}", e);
@@ -135,7 +147,7 @@ fn main() -> Result<()> {
 
     let version = std::env!("CARGO_PKG_VERSION");
     let last_version = std::fs::read(&last_version_path)
-        .map(|c| String::from_utf8(c))
+        .map(String::from_utf8)
         .unwrap_or(Ok(version.to_string()))?;
 
     let should_invalidate_cache = version != last_version;
@@ -148,7 +160,7 @@ fn main() -> Result<()> {
     } else {
         CommentsDatabase::new()
     };
-    if comment_db.hash_to_defs.len() == 0 {
+    if comment_db.hash_to_defs.is_empty() {
         eprintln!("Building Nixpkgs comments cache...");
     }
 
@@ -162,7 +174,7 @@ fn main() -> Result<()> {
     }
 
     if should_invalidate_cache || opt.update_cache || cache_invalid {
-        if let None = build_source_and_add(
+        if build_source_and_add(
             OptionsDatabase::new(OptionsDatabaseType::HomeManager),
             "Home Manager Options",
             &options_hm_cache_path,
@@ -171,11 +183,13 @@ fn main() -> Result<()> {
             } else {
                 None
             },
-        ) {
+        )
+        .is_none()
+        {
             eprintln!("Tip: If you installed your home-manager through configuration.nix you can fix this error by adding the home-manager channel with this command: {}", "nix-channel --add https://github.com/rycee/home-manager/archive/master.tar.gz home-manager && nix-channel --update".bold());
         }
 
-        if let None = build_source_and_add(
+        if build_source_and_add(
             OptionsDatabase::new(OptionsDatabaseType::NixDarwin),
             "Nix-Darwin Options",
             &options_nd_cache_path,
@@ -184,7 +198,9 @@ fn main() -> Result<()> {
             } else {
                 None
             },
-        ) {
+        )
+        .is_none()
+        {
             eprintln!("Tip: Ensure darwin is set in your NIX_PATH");
         }
 
@@ -278,14 +294,9 @@ fn main() -> Result<()> {
     } else {
         aggregate_source.search_liberal(&query)
     };
-    let (entries, key_only_entries): (Vec<DocEntry>, Vec<DocEntry>) =
-        entries.into_iter().partition(|e| {
-            if let DocEntry::NixpkgsTreeDoc(_) = e {
-                false
-            } else {
-                true
-            }
-        });
+    let (entries, key_only_entries): (Vec<DocEntry>, Vec<DocEntry>) = entries
+        .into_iter()
+        .partition(|e| !matches!(e, DocEntry::NixpkgsTreeDoc(_)));
 
     if !key_only_entries.is_empty() {
         const SHOW_MAX_LEN: usize = 50;

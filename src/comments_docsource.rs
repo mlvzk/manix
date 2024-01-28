@@ -1,17 +1,40 @@
 use crate::{
-    contains_insensitive_ascii, starts_with_insensitive_ascii, Cache, DocEntry, DocSource, Errors,
+    contains_insensitive_ascii,
+    starts_with_insensitive_ascii,
+    Cache,
+    DocEntry,
+    DocSource,
+    Errors,
     Lowercase,
 };
 use colored::*;
 use lazy_static::lazy_static;
 use rayon::prelude::*;
-use rnix::ast::{AttrSet, Entry, HasEntry, Ident, Lambda};
-use rnix::{NodeOrToken, Root, SyntaxKind, SyntaxNode, WalkEvent};
+use rnix::{
+    ast::{
+        AttrSet,
+        Entry,
+        HasEntry,
+        Ident,
+        Lambda,
+    },
+    NodeOrToken,
+    Root,
+    SyntaxKind,
+    SyntaxNode,
+    WalkEvent,
+};
 use rowan::ast::AstNode;
-use serde::{Deserialize, Serialize};
+use serde::{
+    Deserialize,
+    Serialize,
+};
 use std::collections::HashMap;
 
-use std::{path::PathBuf, process::Command};
+use std::{
+    path::PathBuf,
+    process::Command,
+};
 lazy_static! {
     static ref NIXPKGS_PATH: PathBuf = get_nixpkgs_root();
 }
@@ -103,7 +126,7 @@ impl CommentDocumentation {
 }
 
 pub fn cleanup_comment(s: &str) -> &str {
-    s.trim_start_matches("#")
+    s.trim_start_matches('#')
         .trim_start_matches("/*")
         .trim_end_matches("*/")
 }
@@ -155,7 +178,7 @@ impl DocSource for CommentsDatabase {
             .values()
             .flatten()
             .filter(|d| {
-                d.comments.len() > 0 && starts_with_insensitive_ascii(d.key.as_bytes(), query)
+                !d.comments.is_empty() && starts_with_insensitive_ascii(d.key.as_bytes(), query)
             })
             .cloned()
             .map(DocEntry::CommentDoc)
@@ -165,7 +188,9 @@ impl DocSource for CommentsDatabase {
         self.hash_to_defs
             .values()
             .flatten()
-            .filter(|d| d.comments.len() > 0 && contains_insensitive_ascii(d.key.as_bytes(), query))
+            .filter(|d| {
+                !d.comments.is_empty() && contains_insensitive_ascii(d.key.as_bytes(), query)
+            })
             .cloned()
             .map(DocEntry::CommentDoc)
             .collect()
@@ -191,7 +216,7 @@ impl DocSource for CommentsDatabase {
             .par_iter()
             .filter(|(hash, _, _)| !self.is_in_cache(hash))
             .map(|(hash, path, content)| {
-                let ast = rnix::Root::parse(&content).ok().unwrap();
+                let ast = rnix::Root::parse(content).ok().unwrap();
                 let definitions = walk_ast(ast)
                     .into_iter()
                     .map(|def| def.with_path(path.clone()))
@@ -210,7 +235,13 @@ impl DocSource for CommentsDatabase {
         Ok(true)
     }
 }
+
 impl Cache for CommentsDatabase {}
+impl Default for CommentsDatabase {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl CommentsDatabase {
     pub fn new() -> Self {
@@ -233,7 +264,7 @@ impl CommentsDatabase {
 }
 
 fn find_nix_files(path: PathBuf) -> Vec<walkdir::DirEntry> {
-    walkdir::WalkDir::new(&path)
+    walkdir::WalkDir::new(path)
         .into_iter()
         .filter_map(Result::ok)
         .filter(|e| !e.file_type().is_dir())

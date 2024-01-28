@@ -1,6 +1,12 @@
 use comments_docsource::CommentDocumentation;
-use options_docsource::{OptionDocumentation, OptionsDatabaseType};
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use options_docsource::{
+    OptionDocumentation,
+    OptionsDatabaseType,
+};
+use rayon::iter::{
+    IntoParallelRefIterator,
+    ParallelIterator,
+};
 use std::path::PathBuf;
 use thiserror::Error;
 use xml_docsource::XmlFuncDocumentation;
@@ -141,7 +147,7 @@ pub(crate) fn starts_with_insensitive_ascii(s: &[u8], prefix: &Lowercase) -> boo
         return false;
     }
 
-    for (i, b) in prefix.into_iter().enumerate() {
+    for (i, b) in prefix.iter().enumerate() {
         // this is safe because of the earlier if check
         if unsafe { s.get_unchecked(i) }.to_ascii_lowercase() != *b {
             return false;
@@ -160,7 +166,7 @@ pub(crate) fn contains_insensitive_ascii(s: &[u8], inner: &Lowercase) -> bool {
 
     'outer: for i in 0..(s.len() - inner.len() + 1) {
         let target = &s[i..i + inner.len()];
-        for (y, b) in target.into_iter().enumerate() {
+        for (y, b) in target.iter().enumerate() {
             if *unsafe { inner.get_unchecked(y) } != b.to_ascii_lowercase() {
                 continue 'outer;
             }
@@ -173,44 +179,44 @@ pub(crate) fn contains_insensitive_ascii(s: &[u8], inner: &Lowercase) -> bool {
 
 #[test]
 fn test_starts_with_insensitive_ascii() {
-    assert_eq!(
-        starts_with_insensitive_ascii("This is a string".as_bytes(), &Lowercase(b"this ")),
-        true,
-    );
-    assert_eq!(
-        starts_with_insensitive_ascii("abc".as_bytes(), &Lowercase(b"abc")),
-        true,
-    );
-    assert_eq!(
-        starts_with_insensitive_ascii("This is a string".as_bytes(), &Lowercase(b"x")),
-        false,
-    );
-    assert_eq!(
-        starts_with_insensitive_ascii("thi".as_bytes(), &Lowercase(b"this ")),
-        false,
-    );
+    assert!(starts_with_insensitive_ascii(
+        "This is a string".as_bytes(),
+        &Lowercase(b"this ")
+    ),);
+    assert!(starts_with_insensitive_ascii(
+        "abc".as_bytes(),
+        &Lowercase(b"abc")
+    ),);
+    assert!(!starts_with_insensitive_ascii(
+        "This is a string".as_bytes(),
+        &Lowercase(b"x")
+    ),);
+    assert!(!starts_with_insensitive_ascii(
+        "thi".as_bytes(),
+        &Lowercase(b"this ")
+    ),);
 }
 
 #[test]
 fn test_contains_insensitive_ascii() {
-    assert_eq!(
-        contains_insensitive_ascii("abc".as_bytes(), &Lowercase(b"b")),
-        true
-    );
-    assert_eq!(
-        contains_insensitive_ascii("abc".as_bytes(), &Lowercase(b"abc")),
-        true
-    );
-    assert_eq!(
-        contains_insensitive_ascii("xabcx".as_bytes(), &Lowercase(b"abc")),
-        true
-    );
-    assert_eq!(
-        contains_insensitive_ascii("abc".as_bytes(), &Lowercase(b"x")),
-        false
-    );
-    assert_eq!(
-        contains_insensitive_ascii("abc".as_bytes(), &Lowercase(b"abcd")),
-        false
-    );
+    assert!(contains_insensitive_ascii(
+        "abc".as_bytes(),
+        &Lowercase(b"b")
+    ),);
+    assert!(contains_insensitive_ascii(
+        "abc".as_bytes(),
+        &Lowercase(b"abc")
+    ),);
+    assert!(contains_insensitive_ascii(
+        "xabcx".as_bytes(),
+        &Lowercase(b"abc")
+    ),);
+    assert!(!contains_insensitive_ascii(
+        "abc".as_bytes(),
+        &Lowercase(b"x")
+    ),);
+    assert!(!contains_insensitive_ascii(
+        "abc".as_bytes(),
+        &Lowercase(b"abcd")
+    ),);
 }
